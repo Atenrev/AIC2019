@@ -40,7 +40,8 @@ public class Worker {
 
         while (true){
             enemyInSight();
-            uc.println(workerState);
+
+            uc.println("Estado actual: " + workerState);
 
             switch(workerState){
                 case 0:
@@ -93,18 +94,17 @@ public class Worker {
 
         //C3 FUNCTIONS
     private void deposit() {
-        moveTo(uc.getTeam().getInitialLocation());
-        Direction dir = Direction.getDirection(uc.getTeam().getInitialLocation().x,  uc.getTeam().getInitialLocation().y);
+            // Note: we can't know the coordinates of the base directly, we need locations (location = offset)
+        Location base = uc.getTeam().getInitialLocation();
+        Direction baseDir = uc.getLocation().directionTo(base);
 
-        if (uc.canDeposit(dir)){
-            uc.deposit(dir);
-            uc.println("DEPOSITANDO");
+        //uc.println("[" + uc.getInfo().getID() + "]: Direction base -> " + baseDir + " ,  " , Location -> " + uc.getLocation());
+        moveTo(base);
+
+        if (uc.canDeposit(baseDir)){
+            uc.deposit(baseDir);
             workerState = 1;
         }
-
-        /*if (!uc.canDeposit(dir)){
-            uc.println("AL RECURSO");
-        }*/
     }
 
         //C5 FUNCTIONS
@@ -137,6 +137,9 @@ public class Worker {
             }
 
             directionWithMoreEnemies = directions[obtainMaxValue(directionsCount)];
+
+            uc.println("[" + uc.getInfo().getID() + "]: Direccion donde hay mas enemigos -> " + directionWithMoreEnemies);
+
             workerState = 4;
         } else {
             enemyInSight = false;
@@ -145,9 +148,11 @@ public class Worker {
 
     private void fleeOppositeDirection(Direction dir) {
         if(uc.canMove(dir.opposite())) {
+            uc.println("[" + uc.getInfo().getID() + "]: Escapare por la direccion -> " + dir.opposite());
             uc.move(dir);
         } else {
             Direction newDir = directionToMove(dir);
+            uc.println("[" + uc.getInfo().getID() + "]: Nueva direccion a la que puedo moverme -> " + newDir);
             uc.move(newDir);
         }
 
@@ -180,24 +185,24 @@ public class Worker {
         moveTo(target);
     }
 
-    Direction directionToMove (Direction senseEnemy) {
+    private Direction directionToMove (Direction senseEnemy) {
         Direction dir = senseEnemy;
+        uc.println("[" + uc.getInfo().getID() + "]: Hay un enemigo en la direccion " + dir);
 
         while (!uc.canMove(dir)){ // rotar hasta que encontramos una direccion que nos podamos mover
+            uc.println("[" + uc.getInfo().getID() + "]: No puedo moverme a " + dir);
             if (senseEnemy != dir){ // evitemos ir a la direccion del enemigo
-                int randomNumber = (int)(Math.random()*1);
+                //int randomNumber = (int)(Math.random()*1);
 
                 //if (randomNumber == 0) {
                     dir.rotateLeft();
+                uc.println("[" + uc.getInfo().getID() + "]: Decido ir por " + dir);
                 /*} else {
                     dir.rotateRight();
                 }*/
 
             }
         }
-
-        uc.println(dir);
-
         return dir;
     }
 
