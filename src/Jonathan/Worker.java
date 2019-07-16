@@ -2,6 +2,8 @@ package Jonathan;
 
 import aic2019.*;
 
+import java.util.Arrays;
+
 public class Worker {
     UnitController uc;
 
@@ -24,12 +26,14 @@ public class Worker {
 
     //Resource variables
     Direction directions[] = { Direction.EAST , Direction.NORTH, Direction.NORTHEAST, Direction.NORTHWEST, Direction.SOUTH, Direction.SOUTHEAST, Direction.SOUTHWEST, Direction.WEST};
+    Direction directionWithMoreEnemies;
+
     Location resourceLocation;
-    int workerState = 0;
+
+    int workerState, index = 0;
 
     boolean resourceAssigned = false;
     boolean enemyInSight = false;
-    Direction directionWithMoreEnemies;
 
     public Worker(UnitController uc) {
         this.uc = uc;
@@ -41,7 +45,7 @@ public class Worker {
         while (true){
             enemyInSight();
 
-            uc.println("Estado actual: " + workerState);
+            //uc.println("Estado actual: " + workerState);
 
             switch(workerState){
                 case 0:
@@ -117,7 +121,7 @@ public class Worker {
 
             for (UnitInfo enemy : enemies) {
                 Location loc = enemy.getLocation();
-                Direction dir = Direction.getDirection(loc.x, loc.y);
+                Direction dir = uc.getLocation().directionTo(loc);
 
                 if (dir == Direction.EAST) {
                     directionsCount[0]++;
@@ -136,9 +140,11 @@ public class Worker {
                 }
             }
 
-            directionWithMoreEnemies = directions[obtainMaxValue(directionsCount)];
+            index = obtainMaxValue(directionsCount);
+            directionWithMoreEnemies = directions[index];
 
-            uc.println("[" + uc.getInfo().getID() + "]: Direccion donde hay mas enemigos -> " + directionWithMoreEnemies);
+            //uc.println("[" + uc.getInfo().getID() + "]: Direccion donde hay mas enemigos -> " + directionWithMoreEnemies);
+            //uc.println(Arrays.toString(directionsCount));
 
             workerState = 4;
         } else {
@@ -148,11 +154,11 @@ public class Worker {
 
     private void fleeOppositeDirection(Direction dir) {
         if(uc.canMove(dir.opposite())) {
-            uc.println("[" + uc.getInfo().getID() + "]: Escapare por la direccion -> " + dir.opposite());
-            uc.move(dir);
+            //uc.println("[" + uc.getInfo().getID() + "]: Escapare por la direccion -> " + dir.opposite());
+            uc.move(dir.opposite());
         } else {
             Direction newDir = directionToMove(dir);
-            uc.println("[" + uc.getInfo().getID() + "]: Nueva direccion a la que puedo moverme -> " + newDir);
+            //uc.println("[" + uc.getInfo().getID() + "]: Nueva direccion a la que puedo moverme -> " + newDir);
             uc.move(newDir);
         }
 
@@ -167,7 +173,7 @@ public class Worker {
                 workerState = 1;
             }
 
-            uc.println(workerState);
+            //uc.println(workerState);
         }
     }
 
@@ -185,25 +191,27 @@ public class Worker {
         moveTo(target);
     }
 
-    private Direction directionToMove (Direction senseEnemy) {
+    Direction directionToMove (Direction senseEnemy) {
         Direction dir = senseEnemy;
-        uc.println("[" + uc.getInfo().getID() + "]: Hay un enemigo en la direccion " + dir);
+        //uc.println("[" + uc.getInfo().getID() + "]: Hay un enemigo en " + dir);
 
-        while (!uc.canMove(dir)){ // rotar hasta que encontramos una direccion que nos podamos mover
-            uc.println("[" + uc.getInfo().getID() + "]: No puedo moverme a " + dir);
-            if (senseEnemy != dir){ // evitemos ir a la direccion del enemigo
-                //int randomNumber = (int)(Math.random()*1);
+        Direction newDir = senseEnemy.opposite();
 
-                //if (randomNumber == 0) {
-                    dir.rotateLeft();
-                uc.println("[" + uc.getInfo().getID() + "]: Decido ir por " + dir);
-                /*} else {
-                    dir.rotateRight();
-                }*/
-
-            }
+        while (newDir != dir){
+            newDir = newDir.rotateLeft();
+            //uc.println("[" + uc.getInfo().getID() + "]: LEFT - Yendo hacia " + newDir);
+            if (uc.canMove(newDir)) return newDir;
         }
-        return dir;
+
+            // if we don't achieve moving to the left, try right
+        newDir = senseEnemy.opposite();
+        while (newDir != dir) {
+            newDir = newDir.rotateRight();
+            //uc.println("[" + uc.getInfo().getID() + "]: RIGHT - Yendo hacia " + newDir);
+            if (uc.canMove(newDir)) return newDir;
+        }
+
+        return senseEnemy.opposite();
     }
 
     void assignResource() {
