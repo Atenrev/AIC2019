@@ -21,12 +21,9 @@ public class Tactica {
         // -((x-7)^2)/80+1
         float p;
         if (units < 7)
-            p = -((float) Math.pow(units-7, 2)/80 + 1) * 1000;
+            p = ((float) -Math.pow(units-7, 2)/80 + 1) * 1000;
         else
             p = (7/units) * 1000;
-        uc.println(p);
-        if (units < 8)
-            p += 1000;
         setPriority((int) p);
     }
 
@@ -34,10 +31,10 @@ public class Tactica {
         int unitCount = 0, top = r;
 
         do {
-            unitCount = uc.read(r+4);
             if (uc.read(r+3) > uc.read(top+3)) {
                 top = r;
             }
+            uc.println(uc.read(r+3));
             // r += r+unitCount+5;
             r += 100;
         } while(uc.read(r) != 0);
@@ -53,7 +50,7 @@ public class Tactica {
         return uc.read(ref);
     }
 
-    public Location getCuadranteObjetivo() {
+    public Location getObjetivo() {
         return new Location(uc.read(ref+1), uc.read(ref+2));
     }
 
@@ -78,8 +75,8 @@ public class Tactica {
         return uc.read(ref+4);
     }
 
-    public void setUnit(int i) {
-        uc.write(ref+5+getUnitsCount(), i);
+    public void setUnit() {
+        // uc.write(ref+5+getUnitsCount(), i);
         setUnitsCount(getUnitsCount()+1);
     }
 
@@ -87,5 +84,7 @@ public class Tactica {
         return uc.read(ref+5+i);
     }
 
-
+    public void deleteUnit(int i) {
+        setUnitsCount(getUnitsCount()-1);
+    }
 }

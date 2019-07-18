@@ -109,6 +109,8 @@ public class MenteColmena {
         combatPriority = (int) (
                 (float)( (3*((uc.read(num_enemy_soldiers)+1))/(uc.read(num_ally_soldiers)+1)) * 1000 )
         );
+
+
     }
 
     private void creacion() {
