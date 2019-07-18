@@ -25,6 +25,7 @@ public class Explorer {
 
     Location target_location;
 
+    // en función de dónde aparezca, explorar una dirección (según esquina) evitando enemigos
     public Explorer(UnitController uc) {
         this.uc = uc;
     }

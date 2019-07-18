@@ -152,11 +152,14 @@ public class Soldier {
             //Direction newDir = directionToMove(uc.getLocation().directionTo(enemy.getLocation()));
             moveTo(meetPoint);
         }
+
+        attackTown();
     }
 
     // TACTIC 2 - C3 FUNCTIONS
     private void rearguardToTarget(Location target) {
         moveTo(target);
+        attackTown();
     }
 
     // FUNCTIONAL FUNCTIONS
@@ -239,6 +242,8 @@ public class Soldier {
             if (town.length > 0)
                 if (town[0].getOwner() != uc.getTeam())
                     uc.attack(town[0].getLocation());
+                else if (town[0].getLocation().x == tactica.getObjetivo().x)
+                    tactica.setType(-1);
         }
     }
 

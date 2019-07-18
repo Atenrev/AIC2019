@@ -12,6 +12,7 @@ public class MenteColmena {
 
     // POINTERS
     final int tactics_pointer = 100155;
+    int tactics_cursor = 0;
     int new_tactics_pointer = 0;
     final int num_ally_soldiers = 200000;
     final int num_enemy_soldiers = 200001;
@@ -108,16 +109,16 @@ public class MenteColmena {
                 }
             }
             if (uc.getWood() * 0.43 > uc.getIron()) {
-                uc.trade(Resource.WOOD, Resource.IRON, uc.getWood() - 70);
+                uc.trade(Resource.WOOD, Resource.IRON, uc.getWood()*0.43f);
             }
 
             if (uc.getWood() * 0.43 < uc.getIron()) {
-                uc.trade(Resource.IRON, Resource.WOOD, uc.getIron() - 30);
+                uc.trade(Resource.IRON, Resource.WOOD, uc.getIron()*1.43f);
             }
         }
 
         economyPriority = (int)
-                ((float)((6/((uc.read(num_ally_workers)+1))) * 1000));
+                ((float)((24/((uc.read(num_ally_workers)+1))) * 1000));
     }
 
     private void combate() {
@@ -126,13 +127,15 @@ public class MenteColmena {
         );
 
         // itera las tácticas en busca de las cumplidas y les asigna una nueva misión
-        /*int c = tactics_pointer;
+        int c = 0;
         while (tacticas[c] != null) {
             if (tacticas[c].getType() == -1) {
-
+                tacticas[c].setMode(1);
+                tacticas[c].setType(3);
+                tacticas[c].setObjective(uc.read(100002), uc.read(100003));
             }
             c++;
-        }*/
+        }
     }
 
     private void creacion() {
@@ -146,11 +149,11 @@ public class MenteColmena {
         }
 
         if (economyPriority > combatPriority && uc.read(num_resources_pointer) > workers) {
-            if (spawnUnit(UnitType.WORKER))
+            while (spawnUnit(UnitType.WORKER))
                 uc.write(num_ally_workers, workers + 1);
         }
         else {
-            if (spawnUnit(UnitType.SOLDIER));
+            while (spawnUnit(UnitType.SOLDIER))
                 uc.write(num_ally_soldiers, soldiers + 1);
         }
     }
@@ -194,7 +197,8 @@ public class MenteColmena {
 
     private void createTacticGroup(int x, int y, int type) {
         Tactica t = new Tactica(uc, tactics_pointer+new_tactics_pointer);
-        tacticas[0] = t;
+        tacticas[tactics_cursor] = t;
+        tactics_cursor++;
         t.setType(type);
         t.setMode(1);
         t.updatePriority();
