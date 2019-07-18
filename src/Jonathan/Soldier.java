@@ -140,9 +140,10 @@ public class Soldier {
 
         if(rearguard || enemy.getType() == UnitType.ARCHER) {
             moveTo(target);
-            if (uc.canAttack(target)) {
+            /*if (uc.canAttack(target)) {
                 uc.attack(target);
-            }
+            }*/
+            attackEnemy();
 
             if (!enemyInSight) {
                 soldierState = 3;
@@ -223,6 +224,13 @@ public class Soldier {
         }
 
         return minHp == minDistance ? array[minHp] : array[minDistance];
+    }
+
+    private void attackEnemy() {
+        UnitInfo[] visibleEnemies = uc.senseUnits(uc.getTeam(), true);
+        for (int i = 0; i < visibleEnemies.length; ++i) {
+            if (uc.canAttack(visibleEnemies[i].getLocation())) uc.attack(visibleEnemies[i].getLocation());
+        }
     }
 
     private void attackTown() {
