@@ -4,62 +4,54 @@ import aic2019.*;
 
 public class Explorer {
     UnitController uc;
+    private int estado = 0;
 
     final int INF = 1000000;
     int counter = 0;
     int resetCounter = 10;
-    Location target_location;
     boolean rotateLeftRight = false, rotateNorthSouth = false;
-    int rpointer = 0;
-    int epointer = 1000;
-    int apointer = 2000;
-
     boolean rotateRight = true; //if I should rotate right or left
     Location lastObstacleFound = null; //latest obstacle I've found in my way
     int minDistToEnemy = INF; //minimum distance I've been to the enemy while going around an obstacle
     Location prevTarget = null; //previous target
+
+    final int rpointer = 0;
+    int last_rpointer = 0;
+    final int apointer = 3000;
+    int last_apointer = 0;
+    final int epointer = 6000;
+    int last_epointer = 0;
+    final int num_resources_pointer = 199999;
+
+    Location target_location;
 
     public Explorer(UnitController uc) {
         this.uc = uc;
     }
 
     public void run () {
-        target_location = new Location(uc.getLocation().x + resetCounter, uc.getLocation().y +resetCounter);
+        generarQuadrants();
 
         while (true){
-            moverExplorador();
-            observar();
+            switch(estado) {
+                case 0:
+                    explore();
+                    break;
+            }
             uc.yield(); //End of turn
         }
     }
 
-    private void moverExplorador() {
-        if (counter < resetCounter) {
-            counter++;
-        }
-        else {
-            counter = 0;
-            resetCounter += 5;
-            if (rotateLeftRight) {
-                if (rotateNorthSouth)
-                    target_location = new Location(uc.getLocation().x + resetCounter, uc.getLocation().y + resetCounter);
-                else
-                    target_location = new Location(uc.getLocation().x + resetCounter, uc.getLocation().y - resetCounter);
-            }
-            else {
-                if (rotateNorthSouth)
-                    target_location = new Location(uc.getLocation().x - resetCounter, uc.getLocation().y + resetCounter );
-                else
-                    target_location = new Location(uc.getLocation().x - resetCounter, uc.getLocation().y - resetCounter);
-            }
-        }
+    private void explore() {
+
         moveTo(target_location);
+        observar();
     }
 
     private void observar() {
         ResourceInfo[] recursos = uc.senseResources();
-        UnitInfo[] aliados = uc.senseUnits(uc.getTeam(),false);
-        UnitInfo[] enemigos = uc.senseUnits(uc.getTeam(), true);
+//        UnitInfo[] aliados = uc.senseUnits(uc.getTeam(),false);
+        UnitInfo[] enemigos = uc.senseUnits(uc.getOpponent(), false);
 
         for (ResourceInfo r : recursos) {
             if (r.getResource() == Resource.WOOD) {
@@ -72,12 +64,16 @@ public class Explorer {
                 addResource(3, r.getLocation());
             }
         }
-        for (UnitInfo a : aliados) {
-            addAlly(a.getID(), a.getLocation());
-        }
+//        for (UnitInfo a : aliados) {
+//            addAlly(a.getID(), a.getLocation());
+//        }
         for (UnitInfo e : enemigos) {
-            addEnemy(e.getID(), e.getLocation());
+            addEnemy(e.getID(), e.getLocation(), e.getType());
         }
+    }
+
+    private void generarQuadrants() {
+
     }
 
     private void addResource(int type, Location loc) {
@@ -89,36 +85,66 @@ public class Explorer {
                 exists = true;
                 break;
             }
-            mem+=3;
-            rpointer+=3;
+            mem+=4;
+            last_rpointer+=4;
         }
 
         if (!exists) {
             uc.write(mem, type);
             uc.write(mem+1, loc.x);
             uc.write(mem+2, loc.y);
+            uc.write(mem+3, -1);
+            uc.write(num_resources_pointer, uc.read(num_resources_pointer)+1);
         }
     }
 
-    private void addEnemy(int id, Location loc) {
+    private void addEnemy(int id, Location loc, UnitType type) {
         int mem = epointer;
         boolean exists = false;
 
         while (uc.read(mem) != 0) {
-            if (uc.read(mem+1) == id) {
+            if (uc.read(mem) == id) {
                 exists = true;
                 break;
             }
-            mem+=3;
-            epointer+=3;
+            mem+=4;
+            last_epointer+=4;
         }
 
-        if (!exists)
-            uc.write(200001,uc.read(200001)+1);
+        if (!exists) {
+            uc.write(200001, uc.read(200001) + 1);
+        }
+        else {
+            int t;
 
-        uc.write(mem, id);
+            if (type == UnitType.SOLDIER)
+                t = 0;
+            else if (type == UnitType.WORKER)
+                t = 1;
+            else if (type == UnitType.ARCHER)
+                t = 2;
+            else if (type == UnitType.EXPLORER)
+                t = 3;
+            else if (type == UnitType.CATAPULT)
+                t = 4;
+            else if (type == UnitType.KNIGHT)
+                t = 5;
+            else if (type == UnitType.BARRACKS)
+                t = 6;
+            else if (type == UnitType.TOWER)
+                t = 7;
+            else if (type == UnitType.MAGE)
+                t = 8;
+            else
+                t = 9;
+
+            uc.write(mem, id);
+            uc.write(mem+3, t);
+        }
+
         uc.write(mem+1, loc.x);
         uc.write(mem+2, loc.y);
+
     }
 
     private void addAlly(int id, Location loc) {
@@ -129,7 +155,7 @@ public class Explorer {
                 break;
             }
             mem+=3;
-            apointer+=3;
+            last_apointer+=3;
         }
 
         uc.write(mem, id);

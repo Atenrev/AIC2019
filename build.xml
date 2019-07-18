@@ -231,7 +231,7 @@
 			<arg value="${package1}" />
 			<arg value="${package2}" />
 			<arg value="${map}" />
-			<arg value="0" />
+			<arg value="1" />
 			<arg value="0" />
 			<arg value="0" />
 		</java>
@@ -255,7 +255,7 @@
 			<arg value="${package1}" />
 			<arg value="${package2}" />
 			<arg value="${map}" />
-			<arg value="1" />
+			<arg value="0" />
 			<arg value="0" />
 			<arg value="0" />
 		</java>
