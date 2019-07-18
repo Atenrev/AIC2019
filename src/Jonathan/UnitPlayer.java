@@ -18,7 +18,7 @@ public class UnitPlayer {
             ex.run();
         }
         else if (uc.getType() == UnitType.SOLDIER) {
-            Soldado so = new Soldado(uc);
+            Soldier so = new Soldier(uc);
             so.run();
         }
     }
