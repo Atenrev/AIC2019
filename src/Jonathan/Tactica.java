@@ -42,11 +42,11 @@ public class Tactica {
         ref = top;
     }
 
-    public void setType(int t) {
+    public void setMode(int t) {
         uc.write(ref, t);
     }
 
-    public int getType() {
+    public int getMode() {
         return uc.read(ref);
     }
 
@@ -80,11 +80,30 @@ public class Tactica {
         setUnitsCount(getUnitsCount()+1);
     }
 
-    public int getUnit(int i) {
-        return uc.read(ref+5+i);
+    public void setLastEnemyCount(int i) {
+        uc.write(ref+5, i);
     }
 
-    public void deleteUnit(int i) {
+    public int getLastEnemyCount() {
+        return uc.read(ref+5);
+    }
+
+    public void setType(int i) {
+        uc.write(ref+6, i);
+    }
+
+    public int getType() {
+        // uc.write(ref+5+getUnitsCount(), i);
+        return uc.read(ref+6);
+    }
+
+    public void deleteUnit() {
         setUnitsCount(getUnitsCount()-1);
     }
+
+    /*public int getUnit(int i) {
+        return uc.read(ref+5+i);
+    }*/
+
+
 }

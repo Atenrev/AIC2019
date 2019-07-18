@@ -5,6 +5,11 @@ import aic2019.*;
 public class MenteColmena {
     UnitController uc;
 
+    // CONSTANTS
+    final int LOCATION_TYPE = 1;
+    final int NEUTRAL_TOWN_TYPE = 2;
+    final int ENEMY_TYPE = 3;
+
     // POINTERS
     final int tactics_pointer = 100155;
     int new_tactics_pointer = 0;
@@ -110,7 +115,13 @@ public class MenteColmena {
                 (float)( (3*((uc.read(num_enemy_soldiers)+1))/(uc.read(num_ally_soldiers)+1)) * 1000 )
         );
 
+        // itera las tácticas en busca de las cumplidas y les asigna una nueva misión
+        int c = tactics_pointer;
+        while (tacticas[c] != null) {
+            if (tacticas[c].getType() == -1) {
 
+            }
+        }
     }
 
     private void creacion() {
@@ -143,6 +154,7 @@ public class MenteColmena {
         Tactica t = new Tactica(uc, tactics_pointer+new_tactics_pointer);
         tacticas[0] = t;
         t.setType(1);
+        t.setMode(1);
         t.updatePriority();
         t.setObjective(x, y);
         new_tactics_pointer += 100;
