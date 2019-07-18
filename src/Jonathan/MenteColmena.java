@@ -25,6 +25,8 @@ public class MenteColmena {
     private int combatPriority;
     private int economyPriority;
 
+    int spawn_dir;
+
     private Tactica[] tacticas;
     private TownInfo[] towns;
 
@@ -81,11 +83,11 @@ public class MenteColmena {
                 tl = towns[i].getLocation();
                 uc.write(neutral_towns_pointer+i*2, tl.x);
                 uc.write(neutral_towns_pointer+i*2, tl.y);
-                createTacticGroup(tl.x, tl.y);
+                createTacticGroup(tl.x, tl.y, NEUTRAL_TOWN_TYPE);
             }
         }
 
-        createTacticGroup(uc.getOpponent().getInitialLocation().x, uc.getOpponent().getInitialLocation().y);
+        createTacticGroup(uc.getOpponent().getInitialLocation().x, uc.getOpponent().getInitialLocation().y, ENEMY_TYPE);
 
         while (true){
             economia();
@@ -97,63 +99,103 @@ public class MenteColmena {
     }
 
     private void economia() {
-        if (uc.getCrystal() > 0) {
-            if (uc.getWood()*0.43 < uc.getIron()) {
-                uc.trade(Resource.CRYSTAL, Resource.WOOD, uc.getCrystal());
+        if (uc.canTrade()) {
+            if (uc.getCrystal() > 0) {
+                if (uc.getWood() * 0.43 < uc.getIron()) {
+                    uc.trade(Resource.CRYSTAL, Resource.WOOD, uc.getCrystal());
+                } else {
+                    uc.trade(Resource.CRYSTAL, Resource.IRON, uc.getCrystal());
+                }
             }
-            else {
-                uc.trade(Resource.CRYSTAL, Resource.IRON, uc.getCrystal());
+            if (uc.getWood() * 0.43 > uc.getIron()) {
+                uc.trade(Resource.WOOD, Resource.IRON, uc.getWood() - 70);
+            }
+
+            if (uc.getWood() * 0.43 < uc.getIron()) {
+                uc.trade(Resource.IRON, Resource.WOOD, uc.getIron() - 30);
             }
         }
 
         economyPriority = (int)
-                ((float)((3/(2*(uc.read(num_ally_workers)+1))) * 1000));
+                ((float)((6/((uc.read(num_ally_workers)+1))) * 1000));
     }
 
     private void combate() {
         combatPriority = (int) (
-                (float)( (3*((uc.read(num_enemy_soldiers)+1))/(uc.read(num_ally_soldiers)+1)) * 1000 )
+                (float)( (3*(uc.read(num_enemy_soldiers)+1)/(uc.read(num_ally_soldiers)+1)) * 1000 )
         );
 
         // itera las tácticas en busca de las cumplidas y les asigna una nueva misión
-        int c = tactics_pointer;
+        /*int c = tactics_pointer;
         while (tacticas[c] != null) {
             if (tacticas[c].getType() == -1) {
 
             }
-        }
+            c++;
+        }*/
     }
 
     private void creacion() {
         int workers = uc.read(num_ally_workers);
-        Direction dir = Direction.values()[(int)(Math.random()*8)];
+        int soldiers = uc.read(num_ally_soldiers);
         int explorers = uc.read(num_explorers_pointer);
 
         if (explorers < 2) {
-            if (uc.canSpawn(dir, UnitType.EXPLORER)) {
-                uc.spawn(dir, UnitType.EXPLORER);
+            if (spawnUnit(UnitType.EXPLORER))
                 uc.write(num_explorers_pointer, explorers+1);
-            }
         }
 
-        if (economyPriority > combatPriority || uc.read(num_resources_pointer) > workers) {
-            if (uc.canSpawn(dir, UnitType.WORKER)) {
-                uc.spawn(dir, UnitType.WORKER);
-                uc.write(num_ally_workers, workers + 1);;
-            }
+        if (economyPriority > combatPriority && uc.read(num_resources_pointer) > workers) {
+            if (spawnUnit(UnitType.WORKER))
+                uc.write(num_ally_workers, workers + 1);
         }
         else {
-            if (uc.canSpawn(dir, UnitType.SOLDIER)) {
-                uc.spawn(dir, UnitType.SOLDIER);
-                uc.write(num_ally_soldiers, workers + 1);;
-            }
+            if (spawnUnit(UnitType.SOLDIER));
+                uc.write(num_ally_soldiers, soldiers + 1);
         }
     }
 
-    private void createTacticGroup(int x, int y) {
+    private boolean spawnUnit(UnitType ut) {
+        if (uc.canSpawn(Direction.EAST, ut)) {
+            uc.println("spawning");
+            uc.spawn(Direction.EAST, ut);
+            return true;
+        }
+        else if (uc.canSpawn(Direction.WEST, ut)) {
+            uc.spawn(Direction.WEST, ut);
+            return true;
+        }
+        else if (uc.canSpawn(Direction.NORTH, ut)) {
+            uc.spawn(Direction.NORTH, ut);
+            return true;
+        }
+        else if (uc.canSpawn(Direction.SOUTH, ut)) {
+            uc.spawn(Direction.SOUTH, ut);
+            return true;
+        }
+        else if (uc.canSpawn(Direction.SOUTHEAST, ut)) {
+            uc.spawn(Direction.SOUTHEAST, ut);
+            return true;
+        }
+        else if (uc.canSpawn(Direction.SOUTHWEST, ut)) {
+            uc.spawn(Direction.SOUTHWEST, ut);
+            return true;
+        }
+        else if (uc.canSpawn(Direction.NORTHEAST, ut)) {
+            uc.spawn(Direction.NORTHEAST, ut);
+            return true;
+        }
+        else if (uc.canSpawn(Direction.NORTHWEST, ut)) {
+            uc.spawn(Direction.NORTHWEST, ut);
+            return true;
+        }
+        return false;
+    }
+
+    private void createTacticGroup(int x, int y, int type) {
         Tactica t = new Tactica(uc, tactics_pointer+new_tactics_pointer);
         tacticas[0] = t;
-        t.setType(1);
+        t.setType(type);
         t.setMode(1);
         t.updatePriority();
         t.setObjective(x, y);

@@ -9,8 +9,10 @@ public class Soldier {
     private Location meetPoint;
 
     private Tactica tactica;
+    Location target;
 
     // Variables soldier
+    int tactics_mode = 0;
     int soldierState = 0;
     float hp_limit = 0;
     boolean enemyInSight = false;
@@ -31,20 +33,20 @@ public class Soldier {
         int x, y;
 
         if (uc.getTeam().getInitialLocation().x > tactica.getObjetivo().x)
-            x = (-uc.getTeam().getInitialLocation().x + tactica.getObjetivo().x) / 4 + uc.getTeam().getInitialLocation().x;
+            x = (-uc.getTeam().getInitialLocation().x + tactica.getObjetivo().x) / 3 + uc.getTeam().getInitialLocation().x;
         else
-            x = (uc.getTeam().getInitialLocation().x - tactica.getObjetivo().x) / 4 + tactica.getObjetivo().x;
+            x = (uc.getTeam().getInitialLocation().x - tactica.getObjetivo().x) / 3 + tactica.getObjetivo().x;
 
         if (uc.getTeam().getInitialLocation().y < tactica.getObjetivo().y)
-            y = (-uc.getTeam().getInitialLocation().y + tactica.getObjetivo().y) / 4 + uc.getTeam().getInitialLocation().y;
+            y = (-uc.getTeam().getInitialLocation().y + tactica.getObjetivo().y) / 3 + uc.getTeam().getInitialLocation().y;
         else
-            y = (uc.getTeam().getInitialLocation().y - tactica.getObjetivo().y) / 4 + tactica.getObjetivo().y;
+            y = (uc.getTeam().getInitialLocation().y - tactica.getObjetivo().y) / 3 + tactica.getObjetivo().y;
 
         meetPoint = new Location(x,y);
 
         while (true){
-            int tactics_mode = tactica.getMode();
-            Location target = tactica.getObjetivo();
+            tactics_mode = tactica.getMode();
+            target = tactica.getObjetivo();
 
             enemyInSight();
 
@@ -61,7 +63,7 @@ public class Soldier {
                             moveGroupToTarget(target);
                             break;
                         case 1:
-                            moveToEnemy(enemy.getLocation());
+                            moveToEnemy();
                             break;
                         case 2:
                             rearguardAttack(target);
@@ -83,7 +85,8 @@ public class Soldier {
          *
          * */
     private void moveGroupToTarget(Location target) {
-        if (getDistanceToPoint(target) > 40 && tactica.getType() == -1) {
+        attackTown();
+        if (tactica.getType() != -1 || getDistanceToPoint(target) > 25) {
             moveTo(target);
         }
     }
@@ -97,14 +100,21 @@ public class Soldier {
         *  - If there is enemy in sight
         *  - If the enemy detected remains in the range of vision
         * */
-    private void moveToEnemy(Location enemy) {
-        moveTo(enemy);
+    private void moveToEnemy() {
+        if (enemy != null) {
+            Location enemy_location = enemy.getLocation();
+            moveTo(enemy_location);
 
-        if (uc.canAttack(enemy)) {
-            uc.attack(enemy);
+            if (uc.canAttack(enemy_location)) {
+                uc.attack(enemy_location);
+            }
+
+            if (!enemyInSight || getDistanceToPoint(enemy_location) > 50) {
+                soldierState = 0;
+            }
         }
-
-        if (!enemyInSight || getDistanceToPoint(enemy) > 50) {
+        else {
+            attackTown();
             soldierState = 0;
         }
     }
@@ -154,7 +164,7 @@ public class Soldier {
         if (enemies.length > 0) {
             enemyInSight = true;
                 // I keep this in case you want set at the beginning until he dies
-            enemy = Arrays.asList(enemies).contains(enemy) ? enemy : obtainEnemy(enemies);
+            enemy = (enemy != null && Arrays.asList(enemies).contains(enemy)) ? enemy : obtainEnemy(enemies);
 
             if ((float) uc.getInfo().getHealth() <= hp_limit) {
                 soldierState = 2;
@@ -167,6 +177,7 @@ public class Soldier {
             }
         } else {
             enemyInSight = false;
+            enemy = null;
             //enemy = null;
 
             if ((float) uc.getInfo().getHealth() <= hp_limit) {
@@ -212,6 +223,15 @@ public class Soldier {
         }
 
         return minHp == minDistance ? array[minHp] : array[minDistance];
+    }
+
+    private void attackTown() {
+        if (tactica.getType() != 1) {
+            TownInfo[] town = uc.senseTowns();
+            if (town.length > 0)
+                if (town[0].getOwner() != uc.getTeam())
+                    uc.attack(town[0].getLocation());
+        }
     }
 
     private void accumulateForces() {
