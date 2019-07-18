@@ -138,7 +138,7 @@ public class Soldier {
     private void rearguardAttack (Location target) {
         boolean rearguard = isRearguard(target);
 
-        if(rearguard) {
+        if(rearguard || enemy.getType() == UnitType.ARCHER) {
             moveTo(target);
             if (uc.canAttack(target)) {
                 uc.attack(target);
