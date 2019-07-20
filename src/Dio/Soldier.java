@@ -50,6 +50,8 @@ public class Soldier {
 
             enemyInSight();
 
+            // to do: verificar catapultas
+
             //uc.println("Estado: " + soldierState);
             //uc.println("Tactica que tengo: " + tactics_mode);
 
@@ -57,7 +59,7 @@ public class Soldier {
                 case 1:
                     accumulateForces();
                     break;
-                case 2: // sera la 2
+                case 2:
                     switch (soldierState) {
                         case 0:
                             moveGroupToTarget(target);
@@ -140,10 +142,10 @@ public class Soldier {
 
         if(rearguard || enemy.getType() == UnitType.ARCHER) {
             moveTo(target);
-            /*if (uc.canAttack(target)) {
+            if (uc.canAttack(target)) {
                 uc.attack(target);
-            }*/
-            attackEnemy();
+            }
+            //attackEnemy();
 
             if (!enemyInSight) {
                 soldierState = 3;
@@ -166,6 +168,10 @@ public class Soldier {
     private void enemyInSight() {
         UnitInfo[] enemies = uc.senseUnits(uc.getTeam(), true);
         if (enemies.length > 0) {
+            tactica.setLastEnemyCount(enemies.length);
+
+            if (enemies.length > tactica.getUnitsCount()) { tactics_mode = 1; }
+
             enemyInSight = true;
                 // I keep this in case you want set at the beginning until he dies
             enemy = (enemy != null && Arrays.asList(enemies).contains(enemy)) ? enemy : obtainEnemy(enemies);
