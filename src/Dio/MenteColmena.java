@@ -6,6 +6,7 @@ public class MenteColmena {
     UnitController uc;
 
     // CONSTANTS
+    final int ACCOMPLISHED_TYPE = -1;
     final int LOCATION_TYPE = 1;
     final int NEUTRAL_TOWN_TYPE = 2;
     final int ENEMY_TYPE = 3;
@@ -128,12 +129,14 @@ public class MenteColmena {
         // itera las tácticas en busca de las cumplidas y les asigna una nueva misión
         int c = 0;
         while (tacticas[c] != null) {
-            if (tacticas[c].getType() == -1) {
+            uc.println(tacticas[c].getType());
+            if (tacticas[c].getType() == ACCOMPLISHED_TYPE) {
                 tacticas[c].setMode(1);
                 tacticas[c].setType(3);
                 boolean targetAssigned = false;
                 for (TownInfo t : towns) {
                     if (t.getOwner() != uc.getTeam()) {
+                        uc.println("Reasignando");
                         tacticas[c].setObjective(t.getLocation().x, t.getLocation().y);
                         targetAssigned = true;
                         break;
@@ -168,7 +171,6 @@ public class MenteColmena {
 
     private boolean spawnUnit(UnitType ut) {
         if (uc.canSpawn(Direction.EAST, ut)) {
-            uc.println("spawning");
             uc.spawn(Direction.EAST, ut);
             return true;
         }

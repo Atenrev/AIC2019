@@ -88,7 +88,7 @@ public class Soldier {
          * */
     private void moveGroupToTarget(Location target) {
         attackTown();
-        if (tactica.getType() != -1 || getDistanceToPoint(target) > 25) {
+        if (getDistanceToPoint(target) > 25 || tactica.getType() != -1) {
             moveTo(target);
         }
     }

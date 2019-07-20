@@ -21,9 +21,9 @@ public class Tactica {
         // -((x-15)^2)/80+3
         float p;
         if (units < 7)
-            p = ((float) -Math.pow(units-15, 2)/80 + 3) * 1000;
+            p = ((float) -Math.pow(units-5, 2)/80 + 3 + getLastEnemyCount()) * 1000 ;
         else
-            p = (15/units) * 1000;
+            p = (5/units + getLastEnemyCount()) * 1000;
         setPriority((int) p);
     }
 
@@ -81,7 +81,8 @@ public class Tactica {
     }
 
     public void setLastEnemyCount(int i) {
-        uc.write(ref+5, i);
+        if (getLastEnemyCount() < i)
+            uc.write(ref+5, i);
     }
 
     public int getLastEnemyCount() {
