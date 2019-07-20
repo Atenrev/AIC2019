@@ -21,7 +21,7 @@ public class Tactica {
         // -((x-15)^2)/80+3
         float p;
         if (units < 7)
-            p = ((float) -Math.pow(units-5, 2)/80 + 3 + getLastEnemyCount()) * 1000 ;
+            p = ((float) -Math.pow(units-5, 2)/80 + 3 + getLastEnemyCount() + distanceToBase()) * 1000 ;
         else
             p = (5/units + getLastEnemyCount()) * 1000;
         setPriority((int) p);
@@ -106,5 +106,9 @@ public class Tactica {
         return uc.read(ref+5+i);
     }*/
 
-
+    private int distanceToBase() {
+        Location target = getObjetivo();
+        return (int) Math.pow(target.x - uc.getTeam().getInitialLocation().x, 2)
+                + (int) Math.pow(target.y - uc.getTeam().getInitialLocation().y, 2);
+    }
 }

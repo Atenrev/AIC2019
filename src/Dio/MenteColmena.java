@@ -132,18 +132,20 @@ public class MenteColmena {
             uc.println(tacticas[c].getType());
             if (tacticas[c].getType() == ACCOMPLISHED_TYPE) {
                 tacticas[c].setMode(1);
-                tacticas[c].setType(3);
                 boolean targetAssigned = false;
                 for (TownInfo t : towns) {
                     if (t.getOwner() != uc.getTeam()) {
                         uc.println("Reasignando");
                         tacticas[c].setObjective(t.getLocation().x, t.getLocation().y);
+                        tacticas[c].setType(NEUTRAL_TOWN_TYPE);
                         targetAssigned = true;
                         break;
                     }
                 }
-                if (!targetAssigned)
+                if (!targetAssigned) {
                     tacticas[c].setObjective(uc.read(100002), uc.read(100003));
+                    tacticas[c].setType(ENEMY_TYPE);
+                }
             }
             c++;
         }

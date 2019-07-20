@@ -18,6 +18,13 @@ public class Soldier {
     boolean enemyInSight = false;
     boolean isDeleted = false;
     UnitInfo enemy;
+    UnitInfo[] enemies;
+
+    // CONSTANTS
+    final int ACCOMPLISHED_TYPE = -1;
+    final int LOCATION_TYPE = 1;
+    final int NEUTRAL_TOWN_TYPE = 2;
+    final int ENEMY_TYPE = 3;
 
     public Soldier (UnitController uc) {
         this.uc = uc;
@@ -32,7 +39,7 @@ public class Soldier {
 
         int x, y;
 
-        if (uc.getTeam().getInitialLocation().x > tactica.getObjetivo().x)
+        if (uc.getTeam().getInitialLocation().x < tactica.getObjetivo().x)
             x = (-uc.getTeam().getInitialLocation().x + tactica.getObjetivo().x) / 3 + uc.getTeam().getInitialLocation().x;
         else
             x = (uc.getTeam().getInitialLocation().x - tactica.getObjetivo().x) / 3 + tactica.getObjetivo().x;
@@ -88,7 +95,7 @@ public class Soldier {
          * */
     private void moveGroupToTarget(Location target) {
         attackTown();
-        if (getDistanceToPoint(target) > 25 || tactica.getType() != -1) {
+        if (getDistanceToPoint(target) > 25 || tactica.getType() != ACCOMPLISHED_TYPE) {
             moveTo(target);
         }
     }
@@ -166,7 +173,8 @@ public class Soldier {
 
     // FUNCTIONAL FUNCTIONS
     private void enemyInSight() {
-        UnitInfo[] enemies = uc.senseUnits(uc.getTeam(), true);
+        enemies = uc.senseUnits(uc.getTeam(), true);
+
         if (enemies.length > 0) {
             tactica.setLastEnemyCount(enemies.length);
 
@@ -246,20 +254,24 @@ public class Soldier {
         if (tactica.getType() != 1) {
             TownInfo[] town = uc.senseTowns();
             if (town.length > 0)
-                if (town[0].getOwner() != uc.getTeam())
-                    uc.attack(town[0].getLocation());
-                else if (town[0].getLocation().x == tactica.getObjetivo().x)
-                    tactica.setType(-1);
+                for (TownInfo t : town) {
+                    if (t.getOwner() != uc.getTeam()) {
+                        if (uc.canAttack(t.getLocation()))
+                            uc.attack(t.getLocation());
+                    }
+                    else if (t.getLocation().x == tactica.getObjetivo().x && t.getLocation().y == tactica.getObjetivo().y)
+                        tactica.setType(ACCOMPLISHED_TYPE);
+                }
         }
     }
 
     private void accumulateForces() {
-        if (tactica.getUnitsCount() > 6)
+        if (tactica.getUnitsCount() > tactica.getLastEnemyCount())
             tactica.setMode(2);
 
-        UnitInfo[] visibleEnemies = uc.senseUnits(uc.getTeam(), true);
-        for (int i = 0; i < visibleEnemies.length; ++i) {
-            if (uc.canAttack(visibleEnemies[i].getLocation())) uc.attack(visibleEnemies[i].getLocation());
+        for (int i = 0; i < enemies.length; ++i) {
+            if (uc.canAttack(enemies[i].getLocation()))
+               uc.attack(enemies[i].getLocation());
         }
 
         moveTo(meetPoint);
@@ -270,8 +282,8 @@ public class Soldier {
 
         UnitInfo[] aliados = uc.senseUnits(uc.getTeam(),false);
 
-        if (aliados.length < 3 && distanceToBase())
-            tactica.setType(0);
+        if (aliados.length < 3 && distanceToBase() < 25)
+            tactica.setMode(2);
 
         moveTo(target);
 
@@ -281,12 +293,9 @@ public class Soldier {
         }
     }
 
-    private boolean distanceToBase() {
-        if (Math.abs(uc.getLocation().x - uc.getTeam().getInitialLocation().x) > 25
-        || Math.abs(uc.getLocation().y - uc.getTeam().getInitialLocation().y) > 25)
-            return true;
-        else
-            return false;
+    private int distanceToBase() {
+        return (int) Math.pow(uc.getLocation().x - uc.getTeam().getInitialLocation().x, 2)
+                + (int) Math.pow(uc.getLocation().y - uc.getTeam().getInitialLocation().y, 2);
     }
 
     final int INF = 1000000;
