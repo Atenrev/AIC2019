@@ -116,6 +116,9 @@ public class Soldier {
 
             if (uc.canAttack(enemy_location)) {
                 uc.attack(enemy_location);
+                if (checkEnemyDied(enemy_location) == null && enemy.getTeam().equals(uc.getOpponent())) {
+                    uc.write(200001, uc.read(200001) - 1);
+                }
             }
 
             if (!enemyInSight || getDistanceToPoint(enemy_location) > 50) {
@@ -126,6 +129,10 @@ public class Soldier {
             attackTown();
             soldierState = 0;
         }
+    }
+
+    private UnitInfo checkEnemyDied(Location enemy_location) {
+        return uc.senseUnit(enemy_location);
     }
 
     private boolean isRearguard (Location enemy) {
@@ -162,6 +169,9 @@ public class Soldier {
 
             if (canAttack) {
                 uc.attack(target);
+                if (checkEnemyDied(target) == null && enemy.getTeam().equals(uc.getOpponent())) {
+                    uc.write(200001, uc.read(200001) - 1);
+                }
             }
 
             //attackEnemy();
@@ -218,7 +228,6 @@ public class Soldier {
         } else {
             enemyInSight = false;
             enemy = null;
-            //enemy = null;
 
             if ((float) uc.getInfo().getHealth() <= hp_limit) {
                 soldierState = 3;
@@ -296,8 +305,12 @@ public class Soldier {
         }
 
         for (int i = 0; i < enemies.length; ++i) {
-            if (uc.canAttack(enemies[i].getLocation()))
-               uc.attack(enemies[i].getLocation());
+            if (uc.canAttack(enemies[i].getLocation())) {
+                uc.attack(enemies[i].getLocation());
+                if (checkEnemyDied(enemies[i].getLocation()) == null && enemy.getTeam().equals(uc.getOpponent())) {
+                    uc.write(200001, uc.read(200001) - 1);
+                }
+            }
         }
 
         moveTo(meetPoint);
@@ -335,7 +348,8 @@ public class Soldier {
         }
 
         for (UnitInfo e : enemies) {
-            addEnemy(e.getID(), e.getLocation(), e.getType());
+            if (e.getTeam().equals(uc.getOpponent()))
+                addEnemy(e.getID(), e.getLocation(), e.getType());
         }
     }
 
