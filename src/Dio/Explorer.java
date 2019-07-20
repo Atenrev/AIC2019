@@ -1,4 +1,4 @@
-package Jonathan;
+package Dio;
 
 import aic2019.*;
 
@@ -15,6 +15,11 @@ public class Explorer {
     int minDistToEnemy = INF; //minimum distance I've been to the enemy while going around an obstacle
     Location prevTarget = null; //previous target
 
+    // PUNTEROS
+    final int base_location_x_pointer = 100000;
+    final int base_location_y_pointer = 100001;
+    final int enemy_base_location_x_pointer = 100002;
+    final int enemy_base_location_y_pointer = 100003;
     final int rpointer = 0;
     int last_rpointer = 0;
     final int apointer = 3000;
@@ -23,6 +28,7 @@ public class Explorer {
     int last_epointer = 0;
     final int num_resources_pointer = 199999;
 
+    Direction exploring_dir;
     Location target_location;
 
     // en función de dónde aparezca, explorar una dirección (según esquina) evitando enemigos
@@ -31,7 +37,26 @@ public class Explorer {
     }
 
     public void run () {
-        generarQuadrants();
+        if (uc.read(base_location_x_pointer) > uc.read(enemy_base_location_x_pointer)) {
+            // NORTHEAST
+            if (uc.read(base_location_y_pointer) > uc.read(enemy_base_location_y_pointer)) {
+                exploring_dir = Direction.SOUTH;
+            }
+            // SOUTHEAST
+            else {
+                exploring_dir = Direction.NORTH;
+            }
+        }
+        else {
+            // NORTHWEAST
+            if (uc.read(base_location_y_pointer) > uc.read(enemy_base_location_y_pointer)) {
+                exploring_dir = Direction.SOUTH;
+            }
+            // SOUTHWEAST
+            else {
+                exploring_dir = Direction.NORTH;
+            }
+        }
 
         while (true){
             switch(estado) {

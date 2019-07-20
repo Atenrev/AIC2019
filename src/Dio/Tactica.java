@@ -1,4 +1,4 @@
-package Jonathan;
+package Dio;
 
 import aic2019.Location;
 import aic2019.UnitController;
@@ -18,12 +18,12 @@ public class Tactica {
 
     public void updatePriority() {
         int units = getUnitsCount();
-        // -((x-7)^2)/80+1
+        // -((x-15)^2)/80+3
         float p;
         if (units < 7)
-            p = ((float) -Math.pow(units-7, 2)/80 + 1) * 1000;
+            p = ((float) -Math.pow(units-15, 2)/80 + 3) * 1000;
         else
-            p = (7/units) * 1000;
+            p = (15/units) * 1000;
         setPriority((int) p);
     }
 

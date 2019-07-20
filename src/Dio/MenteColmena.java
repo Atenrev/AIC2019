@@ -1,4 +1,4 @@
-package Jonathan;
+package Dio;
 
 import aic2019.*;
 
@@ -109,11 +109,10 @@ public class MenteColmena {
                 }
             }
             if (uc.getWood() * 0.43 > uc.getIron()) {
-                uc.trade(Resource.WOOD, Resource.IRON, uc.getWood()*0.43f);
+                uc.trade(Resource.WOOD, Resource.IRON, (uc.getWood()*3) / 7);
             }
-
             if (uc.getWood() * 0.43 < uc.getIron()) {
-                uc.trade(Resource.IRON, Resource.WOOD, uc.getIron()*1.43f);
+                uc.trade(Resource.IRON, Resource.WOOD, (uc.getIron()*7) / 3);
             }
         }
 
@@ -132,7 +131,16 @@ public class MenteColmena {
             if (tacticas[c].getType() == -1) {
                 tacticas[c].setMode(1);
                 tacticas[c].setType(3);
-                tacticas[c].setObjective(uc.read(100002), uc.read(100003));
+                boolean targetAssigned = false;
+                for (TownInfo t : towns) {
+                    if (t.getOwner() != uc.getTeam()) {
+                        tacticas[c].setObjective(t.getLocation().x, t.getLocation().y);
+                        targetAssigned = true;
+                        break;
+                    }
+                }
+                if (!targetAssigned)
+                    tacticas[c].setObjective(uc.read(100002), uc.read(100003));
             }
             c++;
         }
