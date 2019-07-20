@@ -255,7 +255,7 @@ public class Soldier {
             TownInfo[] town = uc.senseTowns();
             if (town.length > 0)
                 for (TownInfo t : town) {
-                    if (t.getOwner() != uc.getTeam()) {
+                    if (!t.getOwner().equals(uc.getTeam())) {
                         if (uc.canAttack(t.getLocation()))
                             uc.attack(t.getLocation());
                     }

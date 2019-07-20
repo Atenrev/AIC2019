@@ -134,7 +134,8 @@ public class MenteColmena {
                 tacticas[c].setMode(1);
                 boolean targetAssigned = false;
                 for (TownInfo t : towns) {
-                    if (t.getOwner() != uc.getTeam()) {
+                    uc.println(t.getLocation().toString() + " " + t.getOwner().toString());
+                    if (!t.getOwner().equals(uc.getTeam())) {
                         uc.println("Reasignando");
                         tacticas[c].setObjective(t.getLocation().x, t.getLocation().y);
                         tacticas[c].setType(NEUTRAL_TOWN_TYPE);

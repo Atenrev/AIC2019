@@ -20,8 +20,10 @@ public class Tactica {
         int units = getUnitsCount();
         // -((x-15)^2)/80+3
         float p;
-        if (units < 7)
-            p = ((float) -Math.pow(units-5, 2)/80 + 3 + getLastEnemyCount() + distanceToBase()) * 1000 ;
+        if (units == 0)
+            p = 10000;
+        else if (units < 7)
+            p = ((float) -Math.pow(units-5, 2)/80 + 3 + getLastEnemyCount() + 1/distanceToBase()) * 1000 ;
         else
             p = (5/units + getLastEnemyCount()) * 1000;
         setPriority((int) p);
@@ -89,13 +91,22 @@ public class Tactica {
         return uc.read(ref+5);
     }
 
+    public void setLastEnemyLife(int i) {
+        if (getLastEnemyCount() < i)
+            uc.write(ref+6, i);
+    }
+
+    public int getLastEnemyLife() {
+        return uc.read(ref+6);
+    }
+
     public void setType(int i) {
-        uc.write(ref+6, i);
+        uc.write(ref+7, i);
     }
 
     public int getType() {
         // uc.write(ref+5+getUnitsCount(), i);
-        return uc.read(ref+6);
+        return uc.read(ref+7);
     }
 
     public void deleteUnit() {
