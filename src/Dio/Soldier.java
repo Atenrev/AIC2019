@@ -26,6 +26,16 @@ public class Soldier {
     final int NEUTRAL_TOWN_TYPE = 2;
     final int ENEMY_TYPE = 3;
 
+    // POINTERS
+    final int rpointer = 0;
+    int last_rpointer = 0;
+    final int apointer = 3000;
+    int last_apointer = 0;
+    final int epointer = 6000;
+    int last_epointer = 0;
+    final int num_resources_pointer = 199999;
+    final int enemy_count_pointer = 200001;
+
     public Soldier (UnitController uc) {
         this.uc = uc;
     }
@@ -37,19 +47,7 @@ public class Soldier {
         tactica.setUnit();
         tactica.updatePriority();
 
-        int x, y;
-
-        if (uc.getTeam().getInitialLocation().x < tactica.getObjetivo().x)
-            x = (-uc.getTeam().getInitialLocation().x + tactica.getObjetivo().x) / 3 + uc.getTeam().getInitialLocation().x;
-        else
-            x = (uc.getTeam().getInitialLocation().x - tactica.getObjetivo().x) / 3 + tactica.getObjetivo().x;
-
-        if (uc.getTeam().getInitialLocation().y < tactica.getObjetivo().y)
-            y = (-uc.getTeam().getInitialLocation().y + tactica.getObjetivo().y) / 3 + uc.getTeam().getInitialLocation().y;
-        else
-            y = (uc.getTeam().getInitialLocation().y - tactica.getObjetivo().y) / 3 + tactica.getObjetivo().y;
-
-        meetPoint = new Location(x,y);
+        getMeetPoint();
 
         while (true){
             tactics_mode = tactica.getMode();
@@ -59,8 +57,8 @@ public class Soldier {
 
             // to do: verificar catapultas
 
-            //uc.println("Estado: " + soldierState);
-            //uc.println("Tactica que tengo: " + tactics_mode);
+            uc.println("Estado: " + soldierState);
+            uc.println("Tactics mode: " + tactics_mode);
 
             switch(tactics_mode){
                 case 1:
@@ -83,6 +81,8 @@ public class Soldier {
                     }
                     break;
             }
+
+            observar();
 
             uc.yield(); //End of turn
         }
@@ -131,13 +131,22 @@ public class Soldier {
     private boolean isRearguard (Location enemy) {
         Direction dir = uc.getLocation().directionTo(enemy);
         UnitInfo[] friends = uc.senseUnits(uc.getTeam(), false);
+        int backFriend = 0;
+
         for (UnitInfo friend : friends){
             Direction dirFriend = uc.getLocation().directionTo(friend.getLocation());
             double distanceFriend = getDistanceToPoint(friend.getLocation());
+            if (dirFriend.opposite() == dir) {
+                backFriend ++;
+            }
 
             if (distanceFriend < getDistanceToPoint(enemy) && dir == dirFriend) {
                 return true;
             }
+        }
+
+        if (backFriend == 0) {
+            return true;
         }
 
         return false;
@@ -146,12 +155,15 @@ public class Soldier {
     // TACTIC 2 - C2 FUNCTIONS
     private void rearguardAttack (Location target) {
         boolean rearguard = isRearguard(target);
+        boolean canAttack = uc.canAttack(target);
 
-        if(rearguard || enemy.getType() == UnitType.ARCHER) {
+        if(rearguard || enemy.getType() == UnitType.ARCHER || (uc.getInfo().getHealth() >= enemy.getHealth() && canAttack)) {
             moveTo(target);
-            if (uc.canAttack(target)) {
+
+            if (canAttack) {
                 uc.attack(target);
             }
+
             //attackEnemy();
 
             if (!enemyInSight) {
@@ -167,7 +179,11 @@ public class Soldier {
 
     // TACTIC 2 - C3 FUNCTIONS
     private void rearguardToTarget(Location target) {
-        moveTo(target);
+
+        if (isRearguard(target)) {
+            moveTo(target);
+        }
+
         attackTown();
     }
 
@@ -178,7 +194,13 @@ public class Soldier {
         if (enemies.length > 0) {
             tactica.setLastEnemyCount(enemies.length);
 
-            if (enemies.length > tactica.getUnitsCount()) { tactics_mode = 1; }
+            uc.println("GetLastEnemyCount: " + tactica.getLastEnemyCount() + " , getUnitsCount: " + tactica.getUnitsCount());
+
+            if (tactica.getLastEnemyCount() >= tactica.getUnitsCount() && tactica.getMode() != 1 && tactica.getType() != 3
+                || (tactica.getType() == 3 && uc.read(enemy_count_pointer) >= tactica.getUnitsCount()) ) {
+                tactica.setMode(1);
+                getMeetPoint();
+            }
 
             enemyInSight = true;
                 // I keep this in case you want set at the beginning until he dies
@@ -251,10 +273,11 @@ public class Soldier {
     }
 
     private void attackTown() {
-        if (tactica.getType() != 1) {
+        if (tactica.getType() != LOCATION_TYPE) {
             TownInfo[] town = uc.senseTowns();
             if (town.length > 0)
                 for (TownInfo t : town) {
+                    //if (t.getOwner() != uc.getTeam()) {
                     if (!t.getOwner().equals(uc.getTeam())) {
                         if (uc.canAttack(t.getLocation()))
                             uc.attack(t.getLocation());
@@ -266,8 +289,11 @@ public class Soldier {
     }
 
     private void accumulateForces() {
-        if (tactica.getUnitsCount() > tactica.getLastEnemyCount())
+        uc.println("GetLastEnemyCount: " + tactica.getLastEnemyCount() + " , getUnitsCount: " + tactica.getUnitsCount());
+
+        if (tactica.getUnitsCount() > tactica.getLastEnemyCount()) {
             tactica.setMode(2);
+        }
 
         for (int i = 0; i < enemies.length; ++i) {
             if (uc.canAttack(enemies[i].getLocation()))
@@ -293,9 +319,45 @@ public class Soldier {
         }
     }
 
+    private void observar() {
+        ResourceInfo[] recursos = uc.senseResources();
+
+        for (ResourceInfo r : recursos) {
+            if (r.getResource() == Resource.WOOD) {
+                addResource(1, r.getLocation());
+            }
+            else if (r.getResource() == Resource.IRON) {
+                addResource(2, r.getLocation());
+            }
+            else if (r.getResource() == Resource.CRYSTAL) {
+                addResource(3, r.getLocation());
+            }
+        }
+
+        for (UnitInfo e : enemies) {
+            addEnemy(e.getID(), e.getLocation(), e.getType());
+        }
+    }
+
     private int distanceToBase() {
         return (int) Math.pow(uc.getLocation().x - uc.getTeam().getInitialLocation().x, 2)
                 + (int) Math.pow(uc.getLocation().y - uc.getTeam().getInitialLocation().y, 2);
+    }
+
+    private void getMeetPoint() {
+        int x, y;
+
+        if (uc.getTeam().getInitialLocation().x > tactica.getObjetivo().x)
+            x = (-uc.getTeam().getInitialLocation().x + tactica.getObjetivo().x) / 3 + uc.getTeam().getInitialLocation().x;
+        else
+            x = (uc.getTeam().getInitialLocation().x - tactica.getObjetivo().x) / 3 + tactica.getObjetivo().x;
+
+        if (uc.getTeam().getInitialLocation().y < tactica.getObjetivo().y)
+            y = (-uc.getTeam().getInitialLocation().y + tactica.getObjetivo().y) / 3 + uc.getTeam().getInitialLocation().y;
+        else
+            y = (uc.getTeam().getInitialLocation().y - tactica.getObjetivo().y) / 3 + tactica.getObjetivo().y;
+
+        meetPoint = new Location(x,y);
     }
 
     final int INF = 1000000;
@@ -350,5 +412,76 @@ public class Soldier {
     void resetPathfinding(){
         lastObstacleFound = null;
         minDistToEnemy = INF;
+    }
+
+    private void addResource(int type, Location loc) {
+        int mem = rpointer;
+        boolean exists = false;
+
+        while (uc.read(mem) != 0) {
+            if (uc.read(mem+1) == loc.x && uc.read(mem+2) == loc.y) {
+                exists = true;
+                break;
+            }
+            mem+=4;
+            last_rpointer+=4;
+        }
+
+        if (!exists) {
+            uc.write(mem, type);
+            uc.write(mem+1, loc.x);
+            uc.write(mem+2, loc.y);
+            uc.write(mem+3, -1);
+            uc.write(num_resources_pointer, uc.read(num_resources_pointer)+1);
+        }
+    }
+
+    private void addEnemy(int id, Location loc, UnitType type) {
+        int mem = epointer;
+        boolean exists = false;
+
+        while (uc.read(mem) != 0) {
+            if (uc.read(mem) == id) {
+                exists = true;
+                break;
+            }
+            mem+=4;
+            last_epointer+=4;
+        }
+
+        if (!exists) {
+            uc.write(200001, uc.read(200001) + 1);
+        }
+        else {
+            int t;
+
+            if (type == UnitType.SOLDIER)
+                t = 0;
+            else if (type == UnitType.WORKER)
+                t = 1;
+            else if (type == UnitType.ARCHER)
+                t = 2;
+            else if (type == UnitType.EXPLORER)
+                t = 3;
+            else if (type == UnitType.CATAPULT)
+                t = 4;
+            else if (type == UnitType.KNIGHT)
+                t = 5;
+            else if (type == UnitType.BARRACKS)
+                t = 6;
+            else if (type == UnitType.TOWER)
+                t = 7;
+            else if (type == UnitType.MAGE)
+                t = 8;
+            else
+                t = 9;
+
+            uc.write(mem, id);
+            uc.write(mem+3, t);
+        }
+
+        uc.write(mem+1, loc.x);
+        uc.write(mem+2, loc.y);
+
     }
 }
