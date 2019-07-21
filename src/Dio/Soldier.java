@@ -41,6 +41,7 @@ public class Soldier {
     int last_apointer = 0;
     final int epointer = 6000;
     int last_epointer = 0;
+    final int neutral_towns_pointer = 100004;
     final int num_resources_pointer = 199999;
     final int enemy_count_pointer = 200001;
 
@@ -66,7 +67,8 @@ public class Soldier {
             // to do: verificar catapultas
 
             uc.println("State: " + soldierState);
-            uc.println("Tactics mode: " + tactics_mode);
+            uc.println("Tactics mode: " + tactica.getMode());
+            uc.println("Tactics type: " + tactica.getType());
 
 
             switch(tactics_mode){
@@ -99,7 +101,6 @@ public class Soldier {
             }
 
             observar();
-
             uc.yield(); //End of turn
         }
     }
@@ -287,6 +288,24 @@ public class Soldier {
             enemyInSight = true;
                 // I keep this in case you want set at the beginning until he dies
             enemy = (enemy != null && Arrays.asList(enemies).contains(enemy)) ? enemy : obtainEnemy(enemies);
+
+            if (enemy.getType() == UnitType.TOWER && tactica.getType() == NEUTRAL_TOWN_TYPE) {
+                tactica.setMode(1);
+                tactica.setType(ACCOMPLISHED_TYPE);
+
+                int ox = tactica.getObjetivo().x;
+                int oy = tactica.getObjetivo().y;
+                int mem = neutral_towns_pointer;
+                while (uc.read(mem) != 0) {
+                    if (uc.read(mem) == ox && uc.read(mem+1) == oy) {
+                        uc.write(mem+2, -1);
+                        break;
+                    }
+                    mem+=3;
+                }
+
+                enemy = null;
+            }
         } else {
             enemyInSight = false;
             enemy = null;
@@ -294,9 +313,15 @@ public class Soldier {
     }
 
     private void observar() {
-        ResourceInfo[] recursos = uc.senseResources();
+        for (UnitInfo e : enemies) {
+            if (e.getTeam().equals(uc.getOpponent()))
+                addEnemy(e.getID(), e.getLocation(), e.getType());
+        }
 
+        ResourceInfo[] recursos = uc.senseResources();
+        int i = 0;
         for (ResourceInfo r : recursos) {
+            if (i > 2) break;
             if (r.getResource() == Resource.WOOD) {
                 addResource(1, r.getLocation());
             }
@@ -306,11 +331,7 @@ public class Soldier {
             else if (r.getResource() == Resource.CRYSTAL) {
                 addResource(3, r.getLocation());
             }
-        }
-
-        for (UnitInfo e : enemies) {
-            if (e.getTeam().equals(uc.getOpponent()))
-                addEnemy(e.getID(), e.getLocation(), e.getType());
+            i++;
         }
     }
 
@@ -424,6 +445,10 @@ public class Soldier {
             y = (uc.getTeam().getInitialLocation().y - tactica.getObjetivo().y) / 3 + tactica.getObjetivo().y;
 
         meetPoint = new Location(x,y);
+    }
+
+    private void getWayPoint() {
+        uc.println(uc.isObstructed(uc.getLocation(), uc.getOpponent().getInitialLocation()));
     }
 
     private double getDistanceToPoint(Location loc) {
