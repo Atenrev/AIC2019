@@ -10,11 +10,16 @@ public class MenteColmena {
     final int LOCATION_TYPE = 1;
     final int NEUTRAL_TOWN_TYPE = 2;
     final int ENEMY_TYPE = 3;
+    final int DEFFENSE_TYPE = 3;
 
     // POINTERS
     final int tactics_pointer = 100155;
     int tactics_cursor = 0;
     int new_tactics_pointer = 0;
+    final int BASE_X = 100000;
+    final int BASE_Y = 100001;
+    final int ENEMY_BASE_X = 100002;
+    final int ENEMY_BASE_Y = 100003;
     final int num_ally_soldiers = 200000;
     final int num_enemy_soldiers = 200001;
     final int num_ally_workers = 200002;
@@ -26,6 +31,7 @@ public class MenteColmena {
 
     private int combatPriority;
     private int economyPriority;
+    private int distance_to_enemy_base_priority;
 
     int spawn_dir;
 
@@ -38,10 +44,13 @@ public class MenteColmena {
     }
 
     public void run () {
-        uc.write(100000, uc.getLocation().x);
-        uc.write(100001, uc.getLocation().y);
-        uc.write(100002, uc.getOpponent().getInitialLocation().x);
-        uc.write(100003, uc.getOpponent().getInitialLocation().y);
+        uc.write(BASE_X, uc.getLocation().x);
+        uc.write(BASE_Y, uc.getLocation().y);
+        uc.write(ENEMY_BASE_X, uc.getOpponent().getInitialLocation().x);
+        uc.write(ENEMY_BASE_Y, uc.getOpponent().getInitialLocation().y);
+        distance_to_enemy_base_priority =
+                1 / (distanceToPoint(uc.read(BASE_X), uc.read(BASE_Y),
+                        uc.read(ENEMY_BASE_X), uc.read(ENEMY_BASE_Y)));
 
         /*int best_distance = 999999;
         int[] loc = new int[] {0, 0};
@@ -92,6 +101,7 @@ public class MenteColmena {
         createTacticGroup(uc.getOpponent().getInitialLocation().x, uc.getOpponent().getInitialLocation().y, ENEMY_TYPE);
 
         while (true){
+            towns = uc.getTowns();
             economia();
             combate();
             creacion();
@@ -110,58 +120,71 @@ public class MenteColmena {
                 }
             }
             if (uc.getWood() * 0.43 > uc.getIron()) {
-                uc.trade(Resource.WOOD, Resource.IRON, (uc.getWood()*3) / 7);
+                uc.trade(Resource.WOOD, Resource.IRON, (uc.getWood()*7) / 3);
             }
             if (uc.getWood() * 0.43 < uc.getIron()) {
-                uc.trade(Resource.IRON, Resource.WOOD, (uc.getIron()*7) / 3);
+                uc.trade(Resource.IRON, Resource.WOOD, (uc.getIron()*3) / 7);
             }
         }
 
         economyPriority = (int)
-                ((float)((24/((uc.read(num_ally_workers)+1))) * 1000));
+                ((float)((8/((uc.read(num_ally_workers)+1))) * 1000));
     }
 
     private void combate() {
+        UnitInfo[] enemies_inbound = uc.senseUnits(uc.getTeam(), true);
         combatPriority = (int) (
-                (float)( (3*(uc.read(num_enemy_soldiers)+1)/(uc.read(num_ally_soldiers)+1)) * 1000 )
+                (float)( ((uc.read(num_enemy_soldiers)+1)/(uc.read(num_ally_soldiers)+1)+distance_to_enemy_base_priority) * 1000 )
         );
 
         // itera las tácticas en busca de las cumplidas y les asigna una nueva misión
         int c = 0;
-        while (tacticas[c] != null) {
-            uc.println(tacticas[c].getType());
-            if (tacticas[c].getType() == ACCOMPLISHED_TYPE) {
-                tacticas[c].setMode(1);
-                boolean targetAssigned = false;
-                for (TownInfo t : towns) {
-                    uc.println(t.getLocation().toString() + " " + t.getOwner().toString());
-                    if (!t.getOwner().equals(uc.getTeam())) {
-                        uc.println("Reasignando");
-                        tacticas[c].setObjective(t.getLocation().x, t.getLocation().y);
-                        tacticas[c].setType(NEUTRAL_TOWN_TYPE);
-                        targetAssigned = true;
-                        break;
+        if (enemies_inbound.length < 3) {
+            while (tacticas[c] != null) {
+                int type = tacticas[c].getType();
+                if (type == ACCOMPLISHED_TYPE
+                        || (type == DEFFENSE_TYPE)) {
+                    tacticas[c].setMode(1);
+                    boolean targetAssigned = false;
+                    for (TownInfo t : towns) {
+                        uc.println(t.getLocation().toString() + " " + t.getOwner().toString());
+                        if (!t.getOwner().equals(uc.getTeam())) {
+                            uc.println("Reasignando");
+                            tacticas[c].setObjective(t.getLocation().x, t.getLocation().y);
+                            tacticas[c].setType(NEUTRAL_TOWN_TYPE);
+                            targetAssigned = true;
+                            break;
+                        }
+                    }
+                    if (!targetAssigned || uc.read(num_enemy_soldiers) * 1.5f < uc.read(num_ally_soldiers)) {
+                        tacticas[c].setObjective(uc.read(ENEMY_BASE_X), uc.read(ENEMY_BASE_Y));
+                        tacticas[c].setType(ENEMY_TYPE);
                     }
                 }
-                if (!targetAssigned) {
-                    tacticas[c].setObjective(uc.read(100002), uc.read(100003));
-                    tacticas[c].setType(ENEMY_TYPE);
-                }
+                c++;
             }
-            c++;
+        }
+        else {
+            while (tacticas[c] != null) {
+                uc.println("Base en peligro");
+                tacticas[c].setMode(2);
+                tacticas[c].setObjective(uc.read(BASE_X), uc.read(BASE_Y));
+                tacticas[c].setType(DEFFENSE_TYPE);
+                c++;
+            }
         }
     }
 
     private void creacion() {
         int workers = uc.read(num_ally_workers);
         int soldiers = uc.read(num_ally_soldiers);
-        int explorers = uc.read(num_explorers_pointer);
+        // int explorers = uc.read(num_explorers_pointer);
 
-        if (explorers < 2) {
+       /* if (explorers < 2) {
             if (spawnUnit(UnitType.EXPLORER))
                 uc.write(num_explorers_pointer, explorers+1);
         }
-
+*/
         if (economyPriority > combatPriority && uc.read(num_resources_pointer) > workers) {
             while (spawnUnit(UnitType.WORKER))
                 uc.write(num_ally_workers, workers + 1);
@@ -217,5 +240,10 @@ public class MenteColmena {
         t.updatePriority();
         t.setObjective(x, y);
         new_tactics_pointer += 100;
+    }
+
+    private int distanceToPoint(int x1, int y1, int x2, int y2) {
+        return (int) Math.pow(x2 - x1, 2)
+                + (int) Math.pow(y2 - y1, 2);
     }
 }

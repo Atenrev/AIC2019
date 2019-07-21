@@ -62,7 +62,14 @@ public class Soldier {
 
             switch(tactics_mode){
                 case 1:
-                    accumulateForces();
+                    switch (soldierState) {
+                        case 0:
+                            accumulateForces();
+                            break;
+                        case 1:
+                            moveToEnemyTactic1();
+                            break;
+                    }
                     break;
                 case 2:
                     switch (soldierState) {
@@ -94,10 +101,29 @@ public class Soldier {
          *
          * */
     private void moveGroupToTarget(Location target) {
-        attackTown();
         if (getDistanceToPoint(target) > 25 || tactica.getType() != ACCOMPLISHED_TYPE) {
             moveTo(target);
         }
+        if (!enemyInSight) {
+            if ((float) uc.getInfo().getHealth() <= hp_limit) {
+                soldierState = 3;
+                if (!isDeleted) {
+                    tactica.deleteUnit();
+                    isDeleted = true;
+                }
+            }
+        } else {
+            if ((float) uc.getInfo().getHealth() > hp_limit) {
+                soldierState = 1;
+            } else {
+                soldierState = 2;
+                if (!isDeleted) {
+                    tactica.deleteUnit();
+                    isDeleted = true;
+                }
+            }
+        }
+        attackTown();
     }
 
     private double getDistanceToPoint(Location loc) {
@@ -121,13 +147,50 @@ public class Soldier {
                 }
             }
 
-            if (!enemyInSight || getDistanceToPoint(enemy_location) > 50) {
+            if (!enemyInSight || getDistanceToPoint(target) > 50) {
                 soldierState = 0;
             }
         }
         else {
             attackTown();
             soldierState = 0;
+        }
+
+        if ((float) uc.getInfo().getHealth() <= hp_limit) {
+            soldierState = 2;
+            if (!isDeleted) {
+                tactica.deleteUnit();
+                isDeleted = true;
+            }
+        }
+    }
+
+    private void moveToEnemyTactic1() {
+        if (enemy != null) {
+            Location enemy_location = enemy.getLocation();
+            moveTo(enemy_location);
+
+            if (uc.canAttack(enemy_location)) {
+                uc.attack(enemy_location);
+                if (checkEnemyDied(enemy_location) == null && enemy.getTeam().equals(uc.getOpponent())) {
+                    uc.write(200001, uc.read(200001) - 1);
+                }
+            }
+
+            if (!enemyInSight || getDistanceToPoint(meetPoint) >= 2) {
+                soldierState = 0;
+            }
+        }
+        else {
+            attackTown();
+            soldierState = 0;
+        }
+
+        if ((float) uc.getInfo().getHealth() <= hp_limit) {
+            if (!isDeleted) {
+                tactica.deleteUnit();
+                isDeleted = true;
+            }
         }
     }
 
@@ -164,7 +227,7 @@ public class Soldier {
         boolean rearguard = isRearguard(target);
         boolean canAttack = uc.canAttack(target);
 
-        if(rearguard || enemy.getType() == UnitType.ARCHER || (uc.getInfo().getHealth() >= enemy.getHealth() && canAttack)) {
+        if(rearguard || enemy.getType() == UnitType.ARCHER || enemy.getType() == UnitType.TOWER || (uc.getInfo().getHealth() >= enemy.getHealth() && canAttack)) {
             moveTo(target);
 
             if (canAttack) {
@@ -183,15 +246,32 @@ public class Soldier {
             //Direction newDir = directionToMove(uc.getLocation().directionTo(enemy.getLocation()));
             moveTo(meetPoint);
         }
+        if ((float) uc.getInfo().getHealth() <= hp_limit) {
+            soldierState = 3;
+            if (!isDeleted) {
+                tactica.deleteUnit();
+                isDeleted = true;
+            }
+        }
 
         attackTown();
     }
 
     // TACTIC 2 - C3 FUNCTIONS
     private void rearguardToTarget(Location target) {
-
         if (isRearguard(target)) {
             moveTo(target);
+        }
+
+        if (enemyInSight) {
+            soldierState = 2;
+        }
+
+        if ((float) uc.getInfo().getHealth() <= hp_limit) {
+            if (!isDeleted) {
+                tactica.deleteUnit();
+                isDeleted = true;
+            }
         }
 
         attackTown();
@@ -206,8 +286,8 @@ public class Soldier {
 
             uc.println("GetLastEnemyCount: " + tactica.getLastEnemyCount() + " , getUnitsCount: " + tactica.getUnitsCount());
 
-            if (tactica.getLastEnemyCount() >= tactica.getUnitsCount() && tactica.getMode() != 1 && tactica.getType() != 3
-                || (tactica.getType() == 3 && uc.read(enemy_count_pointer) >= tactica.getUnitsCount()) ) {
+            if (tactica.getLastEnemyCount() >= tactica.getUnitsCount() && tactica.getMode() != 1 && tactica.getType() != ENEMY_TYPE
+                || (tactica.getType() == ENEMY_TYPE && uc.read(enemy_count_pointer) >= tactica.getUnitsCount()) ) {
                 tactica.setMode(1);
                 getMeetPoint();
             }
@@ -215,23 +295,10 @@ public class Soldier {
             enemyInSight = true;
                 // I keep this in case you want set at the beginning until he dies
             enemy = (enemy != null && Arrays.asList(enemies).contains(enemy)) ? enemy : obtainEnemy(enemies);
-
-            if ((float) uc.getInfo().getHealth() <= hp_limit) {
-                soldierState = 2;
-                if (!isDeleted) {
-                    tactica.deleteUnit();
-                    isDeleted = true;
-                }
-            } else {
-                soldierState = 1;
-            }
         } else {
             enemyInSight = false;
             enemy = null;
-
-            if ((float) uc.getInfo().getHealth() <= hp_limit) {
-                soldierState = 3;
-            }/* else {
+            /* else {
                 soldierState = 0;
             }*/
         }
@@ -314,6 +381,7 @@ public class Soldier {
         }
 
         moveTo(meetPoint);
+        attackTown();
     }
 
     private void wideAttack() {

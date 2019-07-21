@@ -102,6 +102,10 @@ public class Tactica {
 
     public void setType(int i) {
         uc.write(ref+7, i);
+        if (i == -1) {
+            setLastEnemyCount(0);
+            setLastEnemyLife(0);
+        }
     }
 
     public int getType() {
@@ -111,6 +115,7 @@ public class Tactica {
 
     public void deleteUnit() {
         setUnitsCount(getUnitsCount()-1);
+        uc.write(200000, uc.read(200000) - 1);
     }
 
     /*public int getUnit(int i) {
