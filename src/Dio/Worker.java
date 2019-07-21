@@ -212,18 +212,40 @@ public class Worker {
         return senseEnemy.opposite();
     }
 
+    boolean first_resource = true;
+    int mem_closest = 0;
+
+        //pillar el mas cercano
     void assignResource() {
         int mem = rpointer +3;
 
         while (uc.read(mem) != 0) {
             if (uc.read(mem) == -1) {
-                uc.write(mem, uc.getInfo().getID());
-                resourceLocation = new Location(uc.read(mem-2), uc.read(mem-1));
-                resourceAssigned = true;
+                if (first_resource) {
+                    mem_closest = mem;
+                    resourceLocation = new Location(uc.read(mem-2), uc.read(mem-1));
+                    first_resource = false;
+                } else {
+                    Location new_resource = new Location(uc.read(mem-2), uc.read(mem-1));
+                    if (getDistanceToPoint(resourceLocation) > getDistanceToPoint(new_resource)) {
+                        mem_closest = mem;
+                        resourceLocation = new_resource;
+                    }
+                }
                 break;
             }
             mem+=4;
         }
+
+        if (mem_closest != 0) {
+            uc.println("asignando recurso" + mem_closest);
+            uc.write(mem_closest, uc.getInfo().getID());
+            resourceAssigned = true;
+        }
+    }
+
+    private double getDistanceToPoint(Location loc) {
+        return Math.pow(loc.x-uc.getLocation().x, 2) + Math.pow(loc.y-uc.getLocation().y, 2);
     }
 
     void moveTo(Location target){
