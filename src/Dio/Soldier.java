@@ -109,20 +109,7 @@ public class Soldier {
     private void accumulateForces() {
         uc.println("GetLastEnemyCount: " + tactica.getLastEnemyCount() + " , getUnitsCount: " + tactica.getUnitsCount());
 
-        if (tactica.getUnitsCount() > tactica.getLastEnemyCount()) {
-
-            if (!isWaiting){
-                isWaiting = true;
-                round_beginning_waiting = uc.getRound();
-            }
-
-            boolean next = waiting();
-            uc.println("next: " + next);
-
-            if (!next) {
-                tactica.setMode(2);
-            }
-        }
+        changeMode();
 
         for (int i = 0; i < enemies.length; ++i) {
             if (uc.canAttack(enemies[i].getLocation())) {
@@ -135,8 +122,26 @@ public class Soldier {
         attackTown();
     }
 
+    private void changeMode() {
+        if ((tactica.getUnitsCount() > tactica.getLastEnemyCount() && tactica.getType() != ENEMY_TYPE)
+                || (tactica.getUnitsCount() > uc.read(enemy_count_pointer) && tactica.getType() == ENEMY_TYPE)) {
+            if (!isWaiting) {
+                isWaiting = true;
+                round_beginning_waiting = uc.getRound();
+            }
+
+            boolean next = waiting();
+
+            if (!next) {
+                tactica.setMode(2);
+            }
+        }
+    }
+
     // TACTIC 1 - C1 FUNCTIONS
     private void moveToEnemyTactic1() {
+        changeMode();
+
         if (enemy != null) {
             Location enemy_location = enemy.getLocation();
             moveTo(enemy_location);
@@ -149,8 +154,7 @@ public class Soldier {
             if (!enemyInSight || getDistanceToPoint(meetPoint) >= 4) {
                 soldierState = 0;
             }
-        }
-        else {
+        } else {
             attackTown();
             soldierState = 0;
         }
@@ -270,18 +274,7 @@ public class Soldier {
             if (tactica.getLastEnemyCount() >= tactica.getUnitsCount() && tactica.getMode() != 1 && tactica.getType() != ENEMY_TYPE
                 || (tactica.getType() == ENEMY_TYPE && uc.read(enemy_count_pointer) >= tactica.getUnitsCount()) ) {
 
-                if (!isWaiting){
-                    isWaiting = true;
-                    round_beginning_waiting = uc.getRound();
-                }
-
-                boolean next = waiting();
-                uc.println("next: " + next);
-
-                if (!next) {
-                    tactica.setMode(1);
-                }
-
+                tactica.setMode(1);
                 getMeetPoint();
             }
 
@@ -333,6 +326,8 @@ public class Soldier {
             }
             i++;
         }
+
+        uc.println("Energy left: " + uc.getEnergyLeft());
     }
 
             // Priority to the nearest enemy and with lower hp
