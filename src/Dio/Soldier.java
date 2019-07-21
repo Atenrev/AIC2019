@@ -57,7 +57,7 @@ public class Soldier {
 
             // to do: verificar catapultas
 
-            uc.println("Estado: " + soldierState);
+            uc.println("State: " + soldierState);
             uc.println("Tactics mode: " + tactics_mode);
 
             switch(tactics_mode){
@@ -95,11 +95,52 @@ public class Soldier {
         }
     }
 
-        // TACTIC 2 - C0 FUNCTIONS
-        /*
-         *  - If there is no enemy in sight
-         *
-         * */
+    // TACTIC 1 - C0 FUNCTIONS
+    private void accumulateForces() {
+        uc.println("GetLastEnemyCount: " + tactica.getLastEnemyCount() + " , getUnitsCount: " + tactica.getUnitsCount());
+
+        if (tactica.getUnitsCount() > tactica.getLastEnemyCount()) {
+            tactica.setMode(2);
+        }
+
+        for (int i = 0; i < enemies.length; ++i) {
+            if (uc.canAttack(enemies[i].getLocation())) {
+                uc.attack(enemies[i].getLocation());
+                checkEnemyExistence(enemies[i].getLocation());
+            }
+        }
+
+        moveTo(meetPoint);
+        attackTown();
+    }
+
+    // TACTIC 1 - C1 FUNCTIONS
+    private void moveToEnemyTactic1() {
+        if (enemy != null) {
+            Location enemy_location = enemy.getLocation();
+            moveTo(enemy_location);
+
+            if (uc.canAttack(enemy_location)) {
+                uc.attack(enemy_location);
+                checkEnemyExistence(enemy_location);
+            }
+
+            if (!enemyInSight || getDistanceToPoint(meetPoint) >= 2) {
+                soldierState = 0;
+            }
+        }
+        else {
+            attackTown();
+            soldierState = 0;
+        }
+
+        if ((float) uc.getInfo().getHealth() <= hp_limit) {
+            deleteUnit();
+        }
+    }
+
+    // TACTIC 2 - C0 FUNCTIONS
+        /* - If there is no enemy in sight */
     private void moveGroupToTarget(Location target) {
         if (getDistanceToPoint(target) > 25 || tactica.getType() != ACCOMPLISHED_TYPE) {
             moveTo(target);
@@ -107,30 +148,20 @@ public class Soldier {
         if (!enemyInSight) {
             if ((float) uc.getInfo().getHealth() <= hp_limit) {
                 soldierState = 3;
-                if (!isDeleted) {
-                    tactica.deleteUnit();
-                    isDeleted = true;
-                }
+                deleteUnit();
             }
         } else {
             if ((float) uc.getInfo().getHealth() > hp_limit) {
                 soldierState = 1;
             } else {
                 soldierState = 2;
-                if (!isDeleted) {
-                    tactica.deleteUnit();
-                    isDeleted = true;
-                }
+                deleteUnit();
             }
         }
         attackTown();
     }
 
-    private double getDistanceToPoint(Location loc) {
-        return Math.pow(loc.x-uc.getLocation().x, 2) + Math.pow(loc.y-uc.getLocation().y, 2);
-    }
-
-        // TACTIC 2 - C1 FUNCTIONS
+    // TACTIC 2 - C1 FUNCTIONS
         /*
         *  - If there is enemy in sight
         *  - If the enemy detected remains in the range of vision
@@ -142,9 +173,7 @@ public class Soldier {
 
             if (uc.canAttack(enemy_location)) {
                 uc.attack(enemy_location);
-                if (checkEnemyDied(enemy_location) == null && enemy.getTeam().equals(uc.getOpponent())) {
-                    uc.write(200001, uc.read(200001) - 1);
-                }
+                checkEnemyExistence(enemy_location);
             }
 
             if (!enemyInSight || getDistanceToPoint(target) > 50) {
@@ -158,68 +187,8 @@ public class Soldier {
 
         if ((float) uc.getInfo().getHealth() <= hp_limit) {
             soldierState = 2;
-            if (!isDeleted) {
-                tactica.deleteUnit();
-                isDeleted = true;
-            }
+            deleteUnit();
         }
-    }
-
-    private void moveToEnemyTactic1() {
-        if (enemy != null) {
-            Location enemy_location = enemy.getLocation();
-            moveTo(enemy_location);
-
-            if (uc.canAttack(enemy_location)) {
-                uc.attack(enemy_location);
-                if (checkEnemyDied(enemy_location) == null && enemy.getTeam().equals(uc.getOpponent())) {
-                    uc.write(200001, uc.read(200001) - 1);
-                }
-            }
-
-            if (!enemyInSight || getDistanceToPoint(meetPoint) >= 2) {
-                soldierState = 0;
-            }
-        }
-        else {
-            attackTown();
-            soldierState = 0;
-        }
-
-        if ((float) uc.getInfo().getHealth() <= hp_limit) {
-            if (!isDeleted) {
-                tactica.deleteUnit();
-                isDeleted = true;
-            }
-        }
-    }
-
-    private UnitInfo checkEnemyDied(Location enemy_location) {
-        return uc.senseUnit(enemy_location);
-    }
-
-    private boolean isRearguard (Location enemy) {
-        Direction dir = uc.getLocation().directionTo(enemy);
-        UnitInfo[] friends = uc.senseUnits(uc.getTeam(), false);
-        int backFriend = 0;
-
-        for (UnitInfo friend : friends){
-            Direction dirFriend = uc.getLocation().directionTo(friend.getLocation());
-            double distanceFriend = getDistanceToPoint(friend.getLocation());
-            if (dirFriend.opposite() == dir) {
-                backFriend ++;
-            }
-
-            if (distanceFriend < getDistanceToPoint(enemy) && dir == dirFriend) {
-                return true;
-            }
-        }
-
-        if (backFriend == 0) {
-            return true;
-        }
-
-        return false;
     }
 
     // TACTIC 2 - C2 FUNCTIONS
@@ -232,12 +201,8 @@ public class Soldier {
 
             if (canAttack) {
                 uc.attack(target);
-                if (checkEnemyDied(target) == null && enemy.getTeam().equals(uc.getOpponent())) {
-                    uc.write(200001, uc.read(200001) - 1);
-                }
+                checkEnemyExistence(target);
             }
-
-            //attackEnemy();
 
             if (!enemyInSight) {
                 soldierState = 3;
@@ -248,10 +213,7 @@ public class Soldier {
         }
         if ((float) uc.getInfo().getHealth() <= hp_limit) {
             soldierState = 3;
-            if (!isDeleted) {
-                tactica.deleteUnit();
-                isDeleted = true;
-            }
+            deleteUnit();
         }
 
         attackTown();
@@ -268,16 +230,14 @@ public class Soldier {
         }
 
         if ((float) uc.getInfo().getHealth() <= hp_limit) {
-            if (!isDeleted) {
-                tactica.deleteUnit();
-                isDeleted = true;
-            }
+            deleteUnit();
         }
 
         attackTown();
     }
 
     // FUNCTIONAL FUNCTIONS
+        // SENSE FUNCTIONS
     private void enemyInSight() {
         enemies = uc.senseUnits(uc.getTeam(), true);
 
@@ -304,102 +264,6 @@ public class Soldier {
         }
     }
 
-    Direction directionToMove (Direction senseEnemy) {
-        Direction dir = senseEnemy;
-        //uc.println("[" + uc.getInfo().getID() + "]: Hay un enemigo en " + dir);
-
-        Direction newDir = senseEnemy.opposite();
-
-        while (newDir != dir){
-            newDir = newDir.rotateLeft();
-            //uc.println("[" + uc.getInfo().getID() + "]: LEFT - Yendo hacia " + newDir);
-            if (uc.canMove(newDir)) return newDir;
-        }
-
-        // if we don't achieve moving to the left, try right
-        newDir = senseEnemy.opposite();
-        while (newDir != dir) {
-            newDir = newDir.rotateRight();
-            //uc.println("[" + uc.getInfo().getID() + "]: RIGHT - Yendo hacia " + newDir);
-            if (uc.canMove(newDir)) return newDir;
-        }
-
-        return senseEnemy.opposite();
-    }
-
-    // Priority to the nearest enemy and with lower hp
-    private UnitInfo obtainEnemy (UnitInfo[]array) {
-        //UnitInfo objective = array[0];
-        int minHp = 0;
-        int minDistance = 0;
-
-        for (int i = 0; i < array.length; i++) {
-            minHp = array[i].getHealth() < array[minHp].getHealth() ? i : minHp;
-            minDistance = array[i].getLocation().distanceSquared(uc.getLocation()) < array[minDistance].getLocation().distanceSquared(uc.getLocation()) ? i : minDistance;
-        }
-
-        return minHp == minDistance ? array[minHp] : array[minDistance];
-    }
-
-    private void attackEnemy() {
-        UnitInfo[] visibleEnemies = uc.senseUnits(uc.getTeam(), true);
-        for (int i = 0; i < visibleEnemies.length; ++i) {
-            if (uc.canAttack(visibleEnemies[i].getLocation())) uc.attack(visibleEnemies[i].getLocation());
-        }
-    }
-
-    private void attackTown() {
-        if (tactica.getType() != LOCATION_TYPE) {
-            TownInfo[] town = uc.senseTowns();
-            if (town.length > 0)
-                for (TownInfo t : town) {
-                    //if (t.getOwner() != uc.getTeam()) {
-                    if (!t.getOwner().equals(uc.getTeam())) {
-                        if (uc.canAttack(t.getLocation()))
-                            uc.attack(t.getLocation());
-                    }
-                    else if (t.getLocation().x == tactica.getObjetivo().x && t.getLocation().y == tactica.getObjetivo().y)
-                        tactica.setType(ACCOMPLISHED_TYPE);
-                }
-        }
-    }
-
-    private void accumulateForces() {
-        uc.println("GetLastEnemyCount: " + tactica.getLastEnemyCount() + " , getUnitsCount: " + tactica.getUnitsCount());
-
-        if (tactica.getUnitsCount() > tactica.getLastEnemyCount()) {
-            tactica.setMode(2);
-        }
-
-        for (int i = 0; i < enemies.length; ++i) {
-            if (uc.canAttack(enemies[i].getLocation())) {
-                uc.attack(enemies[i].getLocation());
-                if (checkEnemyDied(enemies[i].getLocation()) == null && enemy.getTeam().equals(uc.getOpponent())) {
-                    uc.write(200001, uc.read(200001) - 1);
-                }
-            }
-        }
-
-        moveTo(meetPoint);
-        attackTown();
-    }
-
-    private void wideAttack() {
-        Location target = tactica.getObjetivo();
-
-        UnitInfo[] aliados = uc.senseUnits(uc.getTeam(),false);
-
-        if (aliados.length < 3 && distanceToBase() < 25)
-            tactica.setMode(2);
-
-        moveTo(target);
-
-        UnitInfo[] visibleEnemies = uc.senseUnits(uc.getTeam(), true);
-        for (int i = 0; i < visibleEnemies.length; ++i) {
-            if (uc.canAttack(visibleEnemies[i].getLocation())) uc.attack(visibleEnemies[i].getLocation());
-        }
-    }
-
     private void observar() {
         ResourceInfo[] recursos = uc.senseResources();
 
@@ -421,35 +285,39 @@ public class Soldier {
         }
     }
 
-    private int distanceToBase() {
-        return (int) Math.pow(uc.getLocation().x - uc.getTeam().getInitialLocation().x, 2)
-                + (int) Math.pow(uc.getLocation().y - uc.getTeam().getInitialLocation().y, 2);
+            // Priority to the nearest enemy and with lower hp
+    private UnitInfo obtainEnemy (UnitInfo[]array) {
+        //UnitInfo objective = array[0];
+        int minHp = 0;
+        int minDistance = 0;
+
+        for (int i = 0; i < array.length; i++) {
+            minHp = array[i].getHealth() < array[minHp].getHealth() ? i : minHp;
+            minDistance = array[i].getLocation().distanceSquared(uc.getLocation()) < array[minDistance].getLocation().distanceSquared(uc.getLocation()) ? i : minDistance;
+        }
+
+        return minHp == minDistance ? array[minHp] : array[minDistance];
     }
 
-    private void getMeetPoint() {
-        int x, y;
-
-        if (uc.getTeam().getInitialLocation().x > tactica.getObjetivo().x)
-            x = (-uc.getTeam().getInitialLocation().x + tactica.getObjetivo().x) / 3 + uc.getTeam().getInitialLocation().x;
-        else
-            x = (uc.getTeam().getInitialLocation().x - tactica.getObjetivo().x) / 3 + tactica.getObjetivo().x;
-
-        if (uc.getTeam().getInitialLocation().y < tactica.getObjetivo().y)
-            y = (-uc.getTeam().getInitialLocation().y + tactica.getObjetivo().y) / 3 + uc.getTeam().getInitialLocation().y;
-        else
-            y = (uc.getTeam().getInitialLocation().y - tactica.getObjetivo().y) / 3 + tactica.getObjetivo().y;
-
-        meetPoint = new Location(x,y);
+    private UnitInfo checkEnemyDied(Location enemy_location) {
+        return uc.senseUnit(enemy_location);
     }
 
-    final int INF = 1000000;
+    private void deleteUnit () {
+        if (!isDeleted) {
+            tactica.deleteUnit();
+            isDeleted = true;
+        }
+    }
 
-    boolean rotateRight = true; //if I should rotate right or left
-    Location lastObstacleFound = null; //latest obstacle I've found in my way
-    int minDistToEnemy = INF; //minimum distance I've been to the enemy while going around an obstacle
-    Location prevTarget = null; //previous target
+    private void checkEnemyExistence (Location loc) {
+        if (checkEnemyDied(loc) == null && enemy.getTeam().equals(uc.getOpponent())) {
+            uc.write(enemy_count_pointer, uc.read(enemy_count_pointer) - 1);
+        }
+    }
 
-    void moveTo(Location target){
+        // DIRECTION/LOCATION/DISTANCE FUNCTIONS
+    private void moveTo(Location target){
         //No target? ==> bye!
         if (target == null) return;
 
@@ -490,12 +358,119 @@ public class Soldier {
         if (uc.canMove(dir)) uc.move(dir);
     }
 
-    //clear some of the previous data
-    void resetPathfinding(){
-        lastObstacleFound = null;
-        minDistToEnemy = INF;
+    private Direction directionToMove (Direction senseEnemy) {
+        Direction dir = senseEnemy;
+        //uc.println("[" + uc.getInfo().getID() + "]: Hay un enemigo en " + dir);
+
+        Direction newDir = senseEnemy.opposite();
+
+        while (newDir != dir){
+            newDir = newDir.rotateLeft();
+            //uc.println("[" + uc.getInfo().getID() + "]: LEFT - Yendo hacia " + newDir);
+            if (uc.canMove(newDir)) return newDir;
+        }
+
+        // if we don't achieve moving to the left, try right
+        newDir = senseEnemy.opposite();
+        while (newDir != dir) {
+            newDir = newDir.rotateRight();
+            //uc.println("[" + uc.getInfo().getID() + "]: RIGHT - Yendo hacia " + newDir);
+            if (uc.canMove(newDir)) return newDir;
+        }
+
+        return senseEnemy.opposite();
     }
 
+    private void getMeetPoint() {
+        int x, y;
+
+        if (uc.getTeam().getInitialLocation().x > tactica.getObjetivo().x)
+            x = (-uc.getTeam().getInitialLocation().x + tactica.getObjetivo().x) / 3 + uc.getTeam().getInitialLocation().x;
+        else
+            x = (uc.getTeam().getInitialLocation().x - tactica.getObjetivo().x) / 3 + tactica.getObjetivo().x;
+
+        if (uc.getTeam().getInitialLocation().y < tactica.getObjetivo().y)
+            y = (-uc.getTeam().getInitialLocation().y + tactica.getObjetivo().y) / 3 + uc.getTeam().getInitialLocation().y;
+        else
+            y = (uc.getTeam().getInitialLocation().y - tactica.getObjetivo().y) / 3 + tactica.getObjetivo().y;
+
+        meetPoint = new Location(x,y);
+    }
+
+    private double getDistanceToPoint(Location loc) {
+        return Math.pow(loc.x-uc.getLocation().x, 2) + Math.pow(loc.y-uc.getLocation().y, 2);
+    }
+
+    private int distanceToBase() {
+        return (int) Math.pow(uc.getLocation().x - uc.getTeam().getInitialLocation().x, 2)
+                + (int) Math.pow(uc.getLocation().y - uc.getTeam().getInitialLocation().y, 2);
+    }
+
+        // ATTACK/DEFENSE FUNCTIONS
+    private void attackEnemy() {
+        UnitInfo[] visibleEnemies = uc.senseUnits(uc.getTeam(), true);
+        for (int i = 0; i < visibleEnemies.length; ++i) {
+            if (uc.canAttack(visibleEnemies[i].getLocation())) uc.attack(visibleEnemies[i].getLocation());
+        }
+    }
+
+    private void attackTown() {
+        if (tactica.getType() != LOCATION_TYPE) {
+            TownInfo[] town = uc.senseTowns();
+            if (town.length > 0)
+                for (TownInfo t : town) {
+                    //if (t.getOwner() != uc.getTeam()) {
+                    if (!t.getOwner().equals(uc.getTeam())) {
+                        if (uc.canAttack(t.getLocation()))
+                            uc.attack(t.getLocation());
+                    }
+                    else if (t.getLocation().x == tactica.getObjetivo().x && t.getLocation().y == tactica.getObjetivo().y)
+                        tactica.setType(ACCOMPLISHED_TYPE);
+                }
+        }
+    }
+
+    private void wideAttack() {
+        Location target = tactica.getObjetivo();
+
+        UnitInfo[] aliados = uc.senseUnits(uc.getTeam(),false);
+
+        if (aliados.length < 3 && distanceToBase() < 25)
+            tactica.setMode(2);
+
+        moveTo(target);
+
+        UnitInfo[] visibleEnemies = uc.senseUnits(uc.getTeam(), true);
+        for (int i = 0; i < visibleEnemies.length; ++i) {
+            if (uc.canAttack(visibleEnemies[i].getLocation())) uc.attack(visibleEnemies[i].getLocation());
+        }
+    }
+
+    private boolean isRearguard (Location enemy) {
+        Direction dir = uc.getLocation().directionTo(enemy);
+        UnitInfo[] friends = uc.senseUnits(uc.getTeam(), false);
+        int backFriend = 0;
+
+        for (UnitInfo friend : friends){
+            Direction dirFriend = uc.getLocation().directionTo(friend.getLocation());
+            double distanceFriend = getDistanceToPoint(friend.getLocation());
+            if (dirFriend.opposite() == dir) {
+                backFriend ++;
+            }
+
+            if (distanceFriend < getDistanceToPoint(enemy) && dir == dirFriend) {
+                return true;
+            }
+        }
+
+        if (backFriend == 0) {
+            return true;
+        }
+
+        return false;
+    }
+
+        // MEMORY FUNCTIONS
     private void addResource(int type, Location loc) {
         int mem = rpointer;
         boolean exists = false;
@@ -565,5 +540,19 @@ public class Soldier {
         uc.write(mem+1, loc.x);
         uc.write(mem+2, loc.y);
 
+    }
+
+        // PATHFINDING FUNCTIONS
+    final int INF = 1000000;
+
+    boolean rotateRight = true; //if I should rotate right or left
+    Location lastObstacleFound = null; //latest obstacle I've found in my way
+    int minDistToEnemy = INF; //minimum distance I've been to the enemy while going around an obstacle
+    Location prevTarget = null; //previous target
+
+    //clear some of the previous data
+    private void resetPathfinding() {
+        lastObstacleFound = null;
+        minDistToEnemy = INF;
     }
 }
