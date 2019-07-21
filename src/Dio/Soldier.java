@@ -68,37 +68,34 @@ public class Soldier {
             uc.println("State: " + soldierState);
             uc.println("Tactics mode: " + tactics_mode);
 
-            if (!isWaiting) {
-                switch(tactics_mode){
-                    case 1:
-                        switch (soldierState) {
-                            case 0:
-                                accumulateForces();
-                                break;
-                            case 1:
-                                moveToEnemyTactic1();
-                                break;
-                        }
-                        break;
-                    case 2:
-                        switch (soldierState) {
-                            case 0:
-                                moveGroupToTarget(target);
-                                break;
-                            case 1:
-                                moveToEnemy();
-                                break;
-                            case 2:
-                                rearguardAttack(target);
-                                break;
-                            case 3:
-                                rearguardToTarget(target);
-                                break;
-                        }
-                        break;
-                }
-            } else {
-                isWaiting = waiting();
+
+            switch(tactics_mode){
+                case 1:
+                    switch (soldierState) {
+                        case 0:
+                            accumulateForces();
+                            break;
+                        case 1:
+                            moveToEnemyTactic1();
+                            break;
+                    }
+                    break;
+                case 2:
+                    switch (soldierState) {
+                        case 0:
+                            moveGroupToTarget(target);
+                            break;
+                        case 1:
+                            moveToEnemy();
+                            break;
+                        case 2:
+                            rearguardAttack(target);
+                            break;
+                        case 3:
+                            rearguardToTarget(target);
+                            break;
+                    }
+                    break;
             }
 
             observar();
@@ -112,9 +109,18 @@ public class Soldier {
         uc.println("GetLastEnemyCount: " + tactica.getLastEnemyCount() + " , getUnitsCount: " + tactica.getUnitsCount());
 
         if (tactica.getUnitsCount() > tactica.getLastEnemyCount()) {
-            tactica.setMode(2);
-            isWaiting = true;
-            round_beginning_waiting = uc.getRound();
+
+            if (!isWaiting){
+                isWaiting = true;
+                round_beginning_waiting = uc.getRound();
+            }
+
+            boolean next = waiting();
+            uc.println("next: " + next);
+
+            if (!next) {
+                tactica.setMode(2);
+            }
         }
 
         for (int i = 0; i < enemies.length; ++i) {
@@ -139,7 +145,7 @@ public class Soldier {
                 checkEnemyExistence(enemy_location);
             }
 
-            if (!enemyInSight || getDistanceToPoint(meetPoint) >= 2) {
+            if (!enemyInSight || getDistanceToPoint(meetPoint) >= 4) {
                 soldierState = 0;
             }
         }
@@ -262,10 +268,18 @@ public class Soldier {
 
             if (tactica.getLastEnemyCount() >= tactica.getUnitsCount() && tactica.getMode() != 1 && tactica.getType() != ENEMY_TYPE
                 || (tactica.getType() == ENEMY_TYPE && uc.read(enemy_count_pointer) >= tactica.getUnitsCount()) ) {
-                tactica.setMode(1);
 
-                isWaiting = true;
-                round_beginning_waiting = uc.getRound();
+                if (!isWaiting){
+                    isWaiting = true;
+                    round_beginning_waiting = uc.getRound();
+                }
+
+                boolean next = waiting();
+                uc.println("next: " + next);
+
+                if (!next) {
+                    tactica.setMode(1);
+                }
 
                 getMeetPoint();
             }
@@ -490,9 +504,11 @@ public class Soldier {
         uc.println("Round beginning waiting: " + round_beginning_waiting + " , turn when i need continue: " + sum + " , round actual: " + uc.getRound());
 
         if (sum != uc.getRound()) {
+            isWaiting = true;
             return true;
         }
 
+        isWaiting = false;
         return false;
     }
 
