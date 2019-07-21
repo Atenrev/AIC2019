@@ -112,13 +112,13 @@ public class MenteColmena {
 
     private void economia() {
         if (uc.canTrade()) {
-            if (uc.getCrystal() > 0) {
+            /*if (uc.getCrystal() > 0) {
                 if (uc.getWood() * 0.43 < uc.getIron()) {
                     uc.trade(Resource.CRYSTAL, Resource.WOOD, uc.getCrystal());
                 } else {
                     uc.trade(Resource.CRYSTAL, Resource.IRON, uc.getCrystal());
                 }
-            }
+            }*/
             if (uc.getWood() * 0.43 > uc.getIron()) {
                 uc.trade(Resource.WOOD, Resource.IRON, (uc.getWood()*7) / 3);
             }
@@ -139,7 +139,7 @@ public class MenteColmena {
 
         // itera las tácticas en busca de las cumplidas y les asigna una nueva misión
         int c = 0;
-        if (enemies_inbound.length < 3) {
+        if (enemies_inbound.length < 2) {
             while (tacticas[c] != null) {
                 int type = tacticas[c].getType();
                 if (type == ACCOMPLISHED_TYPE

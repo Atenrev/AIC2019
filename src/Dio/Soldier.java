@@ -196,7 +196,7 @@ public class Soldier {
         boolean rearguard = isRearguard(target);
         boolean canAttack = uc.canAttack(target);
 
-        if(rearguard || enemy.getType() == UnitType.ARCHER || enemy.getType() == UnitType.TOWER || (uc.getInfo().getHealth() >= enemy.getHealth() && canAttack)) {
+        if(rearguard || enemy.getType() == UnitType.ARCHER || enemy.getType() == UnitType.TOWER || (uc.getInfo().getHealth() >= enemy.getHealth()/2 && canAttack)) {
             moveTo(target);
 
             if (canAttack) {

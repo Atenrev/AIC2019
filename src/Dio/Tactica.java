@@ -118,6 +118,15 @@ public class Tactica {
         uc.write(200000, uc.read(200000) - 1);
     }
 
+    public void setTarget() {
+        setUnitsCount(getUnitsCount()-1);
+        uc.write(200000, uc.read(200000) - 1);
+    }
+
+    public void deleteTarget() {
+
+    }
+
     /*public int getUnit(int i) {
         return uc.read(ref+5+i);
     }*/

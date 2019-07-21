@@ -21,5 +21,9 @@ public class UnitPlayer {
             Soldier so = new Soldier(uc);
             so.run();
         }
+        else if (uc.getType() == UnitType.CATAPULT) {
+            Catapult ca = new Catapult(uc);
+            ca.run();
+        }
     }
 }
