@@ -14,9 +14,15 @@ public class Soldier {
     // Variables soldier
     int tactics_mode = 0;
     int soldierState = 0;
+
+    int round_beginning_waiting = 0;
+
     float hp_limit = 0;
+
     boolean enemyInSight = false;
     boolean isDeleted = false;
+    boolean isWaiting = false;
+
     UnitInfo enemy;
     UnitInfo[] enemies;
 
@@ -25,6 +31,8 @@ public class Soldier {
     final int LOCATION_TYPE = 1;
     final int NEUTRAL_TOWN_TYPE = 2;
     final int ENEMY_TYPE = 3;
+
+    final int TURNS_TO_WAIT = 3;
 
     // POINTERS
     final int rpointer = 0;
@@ -60,33 +68,37 @@ public class Soldier {
             uc.println("State: " + soldierState);
             uc.println("Tactics mode: " + tactics_mode);
 
-            switch(tactics_mode){
-                case 1:
-                    switch (soldierState) {
-                        case 0:
-                            accumulateForces();
-                            break;
-                        case 1:
-                            moveToEnemyTactic1();
-                            break;
-                    }
-                    break;
-                case 2:
-                    switch (soldierState) {
-                        case 0:
-                            moveGroupToTarget(target);
-                            break;
-                        case 1:
-                            moveToEnemy();
-                            break;
-                        case 2:
-                            rearguardAttack(target);
-                            break;
-                        case 3:
-                            rearguardToTarget(target);
-                            break;
-                    }
-                    break;
+            if (!isWaiting) {
+                switch(tactics_mode){
+                    case 1:
+                        switch (soldierState) {
+                            case 0:
+                                accumulateForces();
+                                break;
+                            case 1:
+                                moveToEnemyTactic1();
+                                break;
+                        }
+                        break;
+                    case 2:
+                        switch (soldierState) {
+                            case 0:
+                                moveGroupToTarget(target);
+                                break;
+                            case 1:
+                                moveToEnemy();
+                                break;
+                            case 2:
+                                rearguardAttack(target);
+                                break;
+                            case 3:
+                                rearguardToTarget(target);
+                                break;
+                        }
+                        break;
+                }
+            } else {
+                isWaiting = waiting();
             }
 
             observar();
@@ -101,6 +113,8 @@ public class Soldier {
 
         if (tactica.getUnitsCount() > tactica.getLastEnemyCount()) {
             tactica.setMode(2);
+            isWaiting = true;
+            round_beginning_waiting = uc.getRound();
         }
 
         for (int i = 0; i < enemies.length; ++i) {
@@ -249,6 +263,10 @@ public class Soldier {
             if (tactica.getLastEnemyCount() >= tactica.getUnitsCount() && tactica.getMode() != 1 && tactica.getType() != ENEMY_TYPE
                 || (tactica.getType() == ENEMY_TYPE && uc.read(enemy_count_pointer) >= tactica.getUnitsCount()) ) {
                 tactica.setMode(1);
+
+                isWaiting = true;
+                round_beginning_waiting = uc.getRound();
+
                 getMeetPoint();
             }
 
@@ -258,9 +276,6 @@ public class Soldier {
         } else {
             enemyInSight = false;
             enemy = null;
-            /* else {
-                soldierState = 0;
-            }*/
         }
     }
 
@@ -464,6 +479,14 @@ public class Soldier {
         }
 
         if (backFriend == 0) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private boolean waiting () {
+        if (round_beginning_waiting + TURNS_TO_WAIT != uc.getRound()) {
             return true;
         }
 
