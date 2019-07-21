@@ -486,7 +486,10 @@ public class Soldier {
     }
 
     private boolean waiting () {
-        if (round_beginning_waiting + TURNS_TO_WAIT != uc.getRound()) {
+        int sum = round_beginning_waiting + TURNS_TO_WAIT;
+        uc.println("Round beginning waiting: " + round_beginning_waiting + " , turn when i need continue: " + sum + " , round actual: " + uc.getRound());
+
+        if (sum != uc.getRound()) {
             return true;
         }
 
